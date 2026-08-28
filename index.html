@@ -1,1 +1,930 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>EXODO STATS — Hodowla RP</title>
+    <meta name="description" content="Panel statystyk klanów i graczy Hodowla RP">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="brand">
+            <div class="brand-logo">
+                <span>EXODO</span>
+                <small>STATS</small>
+            </div>
+        </div>
+
+        <nav class="navigation">
+
+            <button class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">⌂</span>
+                <span>Dashboard</span>
+            </button>
+
+            <button class="nav-item" data-page="clans">
+                <span class="nav-icon">♜</span>
+                <span>Klany</span>
+            </button>
+
+            <button class="nav-item" data-page="players">
+                <span class="nav-icon">♙</span>
+                <span>Gracze</span>
+            </button>
+
+            <button class="nav-item" data-page="search">
+                <span class="nav-icon">⌕</span>
+                <span>Wyszukiwarka</span>
+            </button>
+
+            <button class="nav-item" data-page="market">
+                <span class="nav-icon">◇</span>
+                <span>Giełda klanów</span>
+            </button>
+
+            <button class="nav-item" data-page="statistics">
+                <span class="nav-icon">▥</span>
+                <span>Statystyki</span>
+            </button>
+
+            <button class="nav-item" data-page="history">
+                <span class="nav-icon">◷</span>
+                <span>Historia</span>
+            </button>
+
+            <button class="nav-item" data-page="tops">
+                <span class="nav-icon">♛</span>
+                <span>Topki</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="promo">
+                <div class="promo-title">EXODO</div>
+                <div class="promo-subtitle">RAZEM PO WIĘCEJ.</div>
+
+                <div class="socials">
+                    <span>◉</span>
+                    <span>♪</span>
+                    <span>▶</span>
+                </div>
+            </div>
+
+            <div class="sidebar-status">
+                <span class="status-dot"></span>
+                System działa
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main">
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+            <button class="mobile-menu" id="mobileMenu">
+                ☰
+            </button>
+
+            <div class="mobile-brand">
+                EXODO <span>STATS</span>
+            </div>
+
+            <div class="topbar-right">
+
+                <div class="server-status">
+                    <span class="status-dot"></span>
+                    <span>Hodowla RP</span>
+                    <strong>ONLINE</strong>
+                </div>
+
+                <div class="last-update">
+                    <span>OSTATNIA AKTUALIZACJA</span>
+                    <strong id="lastUpdate">dzisiaj, 21:42</strong>
+                </div>
+
+                <button class="refresh-button" id="refreshButton" title="Odśwież dane">
+                    ↻
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= CONTENT ================= -->
+
+        <div class="content">
+
+            <!-- DASHBOARD -->
+
+            <section class="page active" id="dashboard">
+
+                <div class="page-heading">
+
+                    <div>
+                        <h1>WITAJ W <span>EXODO</span> STATS</h1>
+                        <p>Najlepsze miejsce z aktualnymi statystykami Hodowla RP</p>
+                    </div>
+
+                    <div class="online-box">
+                        <span class="green-dot"></span>
+                        <div>
+                            <small>GRACZY ONLINE</small>
+                            <strong id="onlinePlayers">132</strong>
+                        </div>
+
+                        <div class="mini-chart">
+                            <i></i><i></i><i></i><i></i><i></i>
+                            <i></i><i></i><i></i><i></i>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- KPI -->
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">♙</div>
+
+                        <div class="stat-info">
+                            <span>LICZBA GRACZY</span>
+                            <strong>1 284</strong>
+                            <small class="positive">↑ 23 wczoraj</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">♜</div>
+
+                        <div class="stat-info">
+                            <span>LICZBA KLANÓW</span>
+                            <strong>68</strong>
+                            <small class="positive">↑ 2 wczoraj</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">▣</div>
+
+                        <div class="stat-info">
+                            <span>ŁĄCZNA KASA KLANÓW</span>
+                            <strong>31,25M $</strong>
+                            <small class="positive">↑ 1,25M $</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">◷</div>
+
+                        <div class="stat-info">
+                            <span>ŁĄCZNY CZAS GRY</span>
+                            <strong>12 543 dni</strong>
+                            <small class="positive">↑ 342 dni</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MAIN TABLES -->
+
+                <div class="dashboard-grid">
+
+                    <!-- CLANS -->
+
+                    <div class="panel clans-panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">♜</span>
+                                <h2>TOP 10 KLANÓW</h2>
+                            </div>
+
+                            <button class="link-button" data-page-link="clans">
+                                Zobacz wszystkie →
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>KLAN</th>
+                                    <th>LIDER</th>
+                                    <th>CZŁONKOWIE</th>
+                                    <th>KASA KLANU</th>
+                                    <th>MAJĄTEK</th>
+                                    <th>CZAS GRY</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+
+                                <tbody id="clanTable"></tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- RICH PLAYERS -->
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">♛</span>
+                                <h2>NAJBOGATSI GRACZE</h2>
+                            </div>
+
+                            <button class="link-button" data-page-link="players">
+                                Zobacz wszystkich →
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>GRACZ</th>
+                                    <th>POZIOM</th>
+                                    <th>KASA</th>
+                                    <th>KLAN</th>
+                                    <th>CZAS GRY</th>
+                                </tr>
+                                </thead>
+
+                                <tbody id="richPlayersTable"></tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- BOTTOM PANELS -->
+
+                <div class="bottom-grid">
+
+                    <div class="panel small-ranking">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">ϟ</span>
+                                <h2>TOP POZIOM</h2>
+                            </div>
+                        </div>
+
+                        <div id="levelRanking"></div>
+
+                    </div>
+
+
+                    <div class="panel small-ranking">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">♙</span>
+                                <h2>TOP KASY</h2>
+                            </div>
+                        </div>
+
+                        <div id="moneyRanking"></div>
+
+                    </div>
+
+
+                    <div class="panel small-ranking">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">◷</span>
+                                <h2>TOP CZASU GRY</h2>
+                            </div>
+                        </div>
+
+                        <div id="timeRanking"></div>
+
+                    </div>
+
+
+                    <!-- ACTIVITY -->
+
+                    <div class="panel activity-panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">⌁</span>
+                                <h2>AKTYWNOŚĆ (7 DNI)</h2>
+                            </div>
+                        </div>
+
+                        <div class="chart-area">
+
+                            <div class="chart-value">184</div>
+
+                            <div class="chart">
+                                <svg viewBox="0 0 500 180" preserveAspectRatio="none">
+
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-opacity=".35"/>
+                                            <stop offset="100%" stop-opacity="0"/>
+                                        </linearGradient>
+                                    </defs>
+
+                                    <path
+                                        class="chart-fill"
+                                        d="M0,135 L70,112 L140,92 L210,118 L280,55 L350,88 L420,62 L500,30 L500,180 L0,180 Z">
+                                    </path>
+
+                                    <polyline
+                                        class="chart-line"
+                                        points="0,135 70,112 140,92 210,118 280,55 350,88 420,62 500,30">
+                                    </polyline>
+
+                                </svg>
+                            </div>
+
+                            <div class="chart-days">
+                                <span>PON</span>
+                                <span>WT</span>
+                                <span>ŚR</span>
+                                <span>CZW</span>
+                                <span>PT</span>
+                                <span>SOB</span>
+                                <span>ND</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= CLANS PAGE ================= -->
+
+            <section class="page" id="clans">
+
+                <div class="page-title">
+                    <div>
+                        <h1>🏆 Ranking klanów</h1>
+                        <p>Najlepsze klany na serwerze</p>
+                    </div>
+                </div>
+
+                <div class="filters">
+
+                    <div class="search-input">
+                        <span>⌕</span>
+                        <input id="clanSearch" type="text" placeholder="Szukaj klanu...">
+                    </div>
+
+                    <select id="clanSort">
+                        <option value="rank">Ranking</option>
+                        <option value="money">Kasa</option>
+                        <option value="members">Członkowie</option>
+                        <option value="time">Czas gry</option>
+                    </select>
+
+                </div>
+
+                <div class="panel full-panel">
+
+                    <div class="table-container">
+
+                        <table class="large-table">
+
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>KLAN</th>
+                                <th>LIDER</th>
+                                <th>CZŁONKOWIE</th>
+                                <th>KASA</th>
+                                <th>MAJĄTEK</th>
+                                <th>CZAS GRY</th>
+                                <th>ZMIANA</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="allClansTable"></tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= PLAYERS PAGE ================= -->
+
+            <section class="page" id="players">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>👤 Ranking graczy</h1>
+                        <p>Najlepsi gracze Hodowla RP</p>
+                    </div>
+
+                </div>
+
+                <div class="filters">
+
+                    <div class="search-input">
+                        <span>⌕</span>
+                        <input id="playerSearch" type="text" placeholder="Szukaj gracza...">
+                    </div>
+
+                    <select id="playerSort">
+                        <option value="money">Najwięcej pieniędzy</option>
+                        <option value="level">Najwyższy poziom</option>
+                        <option value="time">Najwięcej czasu gry</option>
+                    </select>
+
+                </div>
+
+                <div class="panel full-panel">
+
+                    <div class="table-container">
+
+                        <table class="large-table">
+
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>GRACZ</th>
+                                <th>POZIOM</th>
+                                <th>KASA</th>
+                                <th>KLAN</th>
+                                <th>CZAS GRY</th>
+                                <th>STATUS</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="allPlayersTable"></tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= SEARCH ================= -->
+
+            <section class="page" id="search">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>🔎 Wyszukiwarka</h1>
+                        <p>Znajdź gracza lub klan</p>
+                    </div>
+
+                </div>
+
+                <div class="search-big">
+
+                    <span>⌕</span>
+
+                    <input
+                        id="globalSearch"
+                        type="text"
+                        placeholder="Wpisz nazwę gracza lub klanu...">
+
+                    <button id="globalSearchButton">
+                        SZUKAJ
+                    </button>
+
+                </div>
+
+                <div id="searchResults" class="search-results">
+
+                    <div class="empty-state">
+                        <div>⌕</div>
+                        <h3>Wpisz nazwę powyżej</h3>
+                        <p>Wyszukiwarka znajdzie graczy oraz klany.</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= MARKET ================= -->
+
+            <section class="page" id="market">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>💰 Giełda klanów</h1>
+                        <p>Aktualne wartości i zmiany klanów</p>
+                    </div>
+
+                </div>
+
+                <div class="market-grid">
+
+                    <div class="market-card">
+                        <span>NAJWIĘKSZY WZROST</span>
+                        <strong>+18.4%</strong>
+                        <small>[EXO] EXODO</small>
+                    </div>
+
+                    <div class="market-card">
+                        <span>NAJWIĘKSZY SPADEK</span>
+                        <strong class="negative">-7.2%</strong>
+                        <small>[KGB] KGB</small>
+                    </div>
+
+                    <div class="market-card">
+                        <span>ŁĄCZNA WARTOŚĆ</span>
+                        <strong>31.25M $</strong>
+                        <small>68 aktywnych klanów</small>
+                    </div>
+
+                </div>
+
+                <div class="panel full-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-icon">◇</span>
+                            <h2>RYNEK KLANÓW</h2>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+
+                        <table class="large-table">
+
+                            <thead>
+                            <tr>
+                                <th>KLAN</th>
+                                <th>WARTOŚĆ</th>
+                                <th>ZMIANA 24H</th>
+                                <th>ZMIANA 7D</th>
+                                <th>STATUS</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="marketTable"></tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= STATISTICS ================= -->
+
+            <section class="page" id="statistics">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>📊 Statystyki</h1>
+                        <p>Ogólne statystyki serwera</p>
+                    </div>
+
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <div class="stat-icon">♙</div>
+                        <div class="stat-info">
+                            <span>GRACZE</span>
+                            <strong>1 284</strong>
+                            <small>+23 wczoraj</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">♜</div>
+                        <div class="stat-info">
+                            <span>KLANY</span>
+                            <strong>68</strong>
+                            <small>+2 wczoraj</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">ϟ</div>
+                        <div class="stat-info">
+                            <span>ŚREDNI POZIOM</span>
+                            <strong>74</strong>
+                            <small>+1.2%</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">◷</div>
+                        <div class="stat-info">
+                            <span>ŚREDNI CZAS GRY</span>
+                            <strong>9.8 dni</strong>
+                            <small>+4.2%</small>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="panel big-chart-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-icon">⌁</span>
+                            <h2>AKTYWNOŚĆ GRACZY</h2>
+                        </div>
+
+                        <span class="chart-period">OSTATNIE 30 DNI</span>
+                    </div>
+
+                    <div class="big-chart">
+
+                        <div class="grid-lines">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+
+                        <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+
+                            <path
+                                class="big-fill"
+                                d="M0,240 C100,180 120,210 200,170 C280,130 330,180 410,125 C500,70 550,150 620,105 C700,60 750,110 820,80 C900,40 950,80 1000,30 L1000,300 L0,300 Z">
+                            </path>
+
+                            <path
+                                class="big-line"
+                                d="M0,240 C100,180 120,210 200,170 C280,130 330,180 410,125 C500,70 550,150 620,105 C700,60 750,110 820,80 C900,40 950,80 1000,30">
+                            </path>
+
+                        </svg>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= HISTORY ================= -->
+
+            <section class="page" id="history">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>🕐 Historia</h1>
+                        <p>Zmiany statystyk w czasie</p>
+                    </div>
+
+                </div>
+
+                <div class="history-grid">
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">♜</span>
+                                <h2>HISTORIA RANKINGU KLANÓW</h2>
+                            </div>
+                        </div>
+
+                        <div class="history-list">
+
+                            <div class="history-item">
+                                <strong>[EXO] EXODO</strong>
+                                <span>#3 → #1</span>
+                                <b class="positive">▲ 2</b>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>[HOD] Hodowla</strong>
+                                <span>#1 → #2</span>
+                                <b class="negative">▼ 1</b>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>[KGB] KGB</strong>
+                                <span>#2 → #3</span>
+                                <b class="negative">▼ 1</b>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>[BLO] Bloods</strong>
+                                <span>#7 → #4</span>
+                                <b class="positive">▲ 3</b>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-icon">ϟ</span>
+                                <h2>OSTATNIE ZMIANY</h2>
+                            </div>
+                        </div>
+
+                        <div class="history-list">
+
+                            <div class="history-item">
+                                <strong>EXODO</strong>
+                                <span>+1 250 000 $</span>
+                                <small>dzisiaj</small>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>Deazzyy</strong>
+                                <span>+2 poziomy</span>
+                                <small>dzisiaj</small>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>Hodowla</strong>
+                                <span>+320 000 $</span>
+                                <small>wczoraj</small>
+                            </div>
+
+                            <div class="history-item">
+                                <strong>KGB123</strong>
+                                <span>+1 poziom</span>
+                                <small>wczoraj</small>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= TOPS ================= -->
+
+            <section class="page" id="tops">
+
+                <div class="page-title">
+
+                    <div>
+                        <h1>👑 Topki</h1>
+                        <p>Najlepsi z najlepszych</p>
+                    </div>
+
+                </div>
+
+                <div class="tops-grid">
+
+                    <div class="panel top-card">
+
+                        <div class="top-title">
+                            <span>ϟ</span>
+                            <h2>NAJWYŻSZY POZIOM</h2>
+                        </div>
+
+                        <div class="podium">
+                            <div class="podium-player second">
+                                <span>2</span>
+                                <strong>d3vki</strong>
+                                <small>115 LVL</small>
+                            </div>
+
+                            <div class="podium-player first">
+                                <span>1</span>
+                                <strong>Deazzyy</strong>
+                                <small>120 LVL</small>
+                            </div>
+
+                            <div class="podium-player third">
+                                <span>3</span>
+                                <strong>KGB123</strong>
+                                <small>112 LVL</small>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel top-card">
+
+                        <div class="top-title">
+                            <span>▣</span>
+                            <h2>NAJWIĘCEJ PIENIĘDZY</h2>
+                        </div>
+
+                        <div class="big-number">
+                            2 450 000 $
+                            <small>Deazzyy</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel top-card">
+
+                        <div class="top-title">
+                            <span>◷</span>
+                            <h2>NAJWIĘCEJ CZASU GRY</h2>
+                        </div>
+
+                        <div class="big-number">
+                            48 dni
+                            <small>Deazzyy</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+        <footer>
+            <span>EXODO STATS</span>
+            <span>Panel statystyk Hodowla RP</span>
+            <span>v1.0.0</span>
+        </footer>
+
+    </main>
+
+</div>
+
+
+<div class="toast" id="toast">
+    <span>✓</span>
+    Dane zostały odświeżone
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
