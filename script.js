@@ -1106,3 +1106,465 @@ console.log(
 console.log(
     "Panel uruchomiony poprawnie."
 );
+/* =========================================================
+   EXODO PREMIUM CHARTS
+   ========================================================= */
+
+function setupCanvas(canvas) {
+
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.scale(ratio, ratio);
+
+    return {
+        ctx,
+        width: rect.width,
+        height: rect.height
+    };
+}
+
+
+/* =========================================================
+   LINE CHART
+   ========================================================= */
+
+function drawLineChart(canvasId, values, labels) {
+
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) return;
+
+    const setup = setupCanvas(canvas);
+
+    if (!setup) return;
+
+    const {
+        ctx,
+        width,
+        height
+    } = setup;
+
+    const padding = 35;
+
+    const chartWidth =
+        width - padding * 2;
+
+    const chartHeight =
+        height - padding * 2;
+
+    const max =
+        Math.max(...values) * 1.15;
+
+    const min = 0;
+
+    /* GRID */
+
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i <= 4; i++) {
+
+        const y =
+            padding +
+            (chartHeight / 4) * i;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            padding,
+            y
+        );
+
+        ctx.lineTo(
+            width - padding,
+            y
+        );
+
+        ctx.strokeStyle =
+            "rgba(255,255,255,0.06)";
+
+        ctx.stroke();
+    }
+
+
+    /* LINE */
+
+    ctx.beginPath();
+
+    values.forEach((value, index) => {
+
+        const x =
+            padding +
+            (chartWidth /
+                (values.length - 1)) *
+            index;
+
+        const y =
+            padding +
+            chartHeight -
+            ((value - min) /
+                (max - min)) *
+            chartHeight;
+
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+
+    });
+
+    ctx.strokeStyle = "#9b5cff";
+
+    ctx.lineWidth = 3;
+
+    ctx.lineJoin = "round";
+
+    ctx.lineCap = "round";
+
+    ctx.shadowBlur = 15;
+
+    ctx.shadowColor =
+        "rgba(155,92,255,0.5)";
+
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+
+    /* POINTS */
+
+    values.forEach((value, index) => {
+
+        const x =
+            padding +
+            (chartWidth /
+                (values.length - 1)) *
+            index;
+
+        const y =
+            padding +
+            chartHeight -
+            ((value - min) /
+                (max - min)) *
+            chartHeight;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            4,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle = "#9b5cff";
+
+        ctx.fill();
+
+    });
+
+
+    /* LABELS */
+
+    ctx.font =
+        "10px Inter, Arial";
+
+    ctx.fillStyle =
+        "#6f6a78";
+
+    ctx.textAlign = "center";
+
+    labels.forEach((label, index) => {
+
+        const x =
+            padding +
+            (chartWidth /
+                (labels.length - 1)) *
+            index;
+
+        ctx.fillText(
+            label,
+            x,
+            height - 10
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   BAR CHART
+   ========================================================= */
+
+function drawBarChart(
+    canvasId,
+    values,
+    labels
+) {
+
+    const canvas =
+        document.getElementById(canvasId);
+
+    if (!canvas) return;
+
+    const setup =
+        setupCanvas(canvas);
+
+    if (!setup) return;
+
+    const {
+        ctx,
+        width,
+        height
+    } = setup;
+
+    const padding = 30;
+
+    const max =
+        Math.max(...values) * 1.15;
+
+    const chartHeight =
+        height - 65;
+
+    const availableWidth =
+        width - padding * 2;
+
+    const barWidth =
+        availableWidth /
+        values.length *
+        0.55;
+
+
+    values.forEach((value, index) => {
+
+        const x =
+            padding +
+            index *
+            (availableWidth /
+                values.length) +
+            (
+                availableWidth /
+                values.length -
+                barWidth
+            ) / 2;
+
+        const barHeight =
+            (value / max) *
+            chartHeight;
+
+        const y =
+            height -
+            35 -
+            barHeight;
+
+
+        const gradient =
+            ctx.createLinearGradient(
+                0,
+                y,
+                0,
+                height
+            );
+
+        gradient.addColorStop(
+            0,
+            "#b982ff"
+        );
+
+        gradient.addColorStop(
+            1,
+            "#7139c7"
+        );
+
+        ctx.fillStyle = gradient;
+
+        ctx.beginPath();
+
+        ctx.roundRect(
+            x,
+            y,
+            barWidth,
+            barHeight,
+            7
+        );
+
+        ctx.fill();
+
+
+        /* LABEL */
+
+        ctx.font =
+            "9px Inter, Arial";
+
+        ctx.fillStyle =
+            "#77717f";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            labels[index],
+            x + barWidth / 2,
+            height - 12
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   CREATE CHARTS
+   ========================================================= */
+
+function createExodoCharts() {
+
+    drawLineChart(
+        "activityChart",
+        [
+            94,
+            121,
+            138,
+            127,
+            156,
+            171,
+            182
+        ],
+        [
+            "Pn",
+            "Wt",
+            "Śr",
+            "Czw",
+            "Pt",
+            "Sob",
+            "Nd"
+        ]
+    );
+
+
+    drawLineChart(
+        "activityChart2",
+        [
+            94,
+            121,
+            138,
+            127,
+            156,
+            171,
+            182
+        ],
+        [
+            "Pn",
+            "Wt",
+            "Śr",
+            "Czw",
+            "Pt",
+            "Sob",
+            "Nd"
+        ]
+    );
+
+
+    drawBarChart(
+        "clanChart",
+        [
+            12.4,
+            10.1,
+            9.5,
+            8.3,
+            6.7,
+            5.9,
+            4.8,
+            4.1,
+            3.6,
+            3.1
+        ],
+        [
+            "EXO",
+            "HOD",
+            "KGB",
+            "BLO",
+            "RDM",
+            "THC",
+            "777",
+            "BRK",
+            "LUX",
+            "ZAB"
+        ]
+    );
+
+
+    drawBarChart(
+        "wealthChart",
+        [
+            12.4,
+            10.1,
+            9.5,
+            8.3,
+            6.7,
+            5.9,
+            4.8,
+            4.1,
+            3.6,
+            3.1
+        ],
+        [
+            "EXO",
+            "HOD",
+            "KGB",
+            "BLO",
+            "RDM",
+            "THC",
+            "777",
+            "BRK",
+            "LUX",
+            "ZAB"
+        ]
+    );
+
+}
+
+
+/* =========================================================
+   CHARTS AFTER PAGE LOAD
+   ========================================================= */
+
+setTimeout(() => {
+
+    createExodoCharts();
+
+}, 300);
+
+
+/* =========================================================
+   REDRAW ON RESIZE
+   ========================================================= */
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        clearTimeout(
+            window.exodoResize
+        );
+
+        window.exodoResize =
+            setTimeout(() => {
+
+                createExodoCharts();
+
+            }, 250);
+
+    }
+);
