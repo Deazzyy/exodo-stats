@@ -1241,3 +1241,46 @@ select:focus {
     background:
         rgba(155, 92, 255, 0.45);
 }
+/* =========================================================
+   EXODO LOGO + CHARTS
+   ========================================================= */
+
+.logo-image {
+    width: 42px;
+    height: 42px;
+
+    object-fit: contain;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 0 28px rgba(155, 92, 255, 0.35);
+}
+
+.chart-container {
+    position: relative;
+
+    width: 100%;
+    height: 280px;
+}
+
+.chart-container.small {
+    height: 270px;
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 760px) {
+
+    .chart-container {
+        height: 230px;
+    }
+
+    .chart-container.small {
+        height: 230px;
+    }
+
+}
