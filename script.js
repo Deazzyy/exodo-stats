@@ -1,153 +1,134 @@
 /* =========================================================
    EXODO STATS
-   REAL API + NAVIGATION + TABLES + CHARTS
-========================================================= */
+   REAL HODOWLA RP DATA
+   ========================================================= */
 
 const API_URL =
     "https://exodo-api.oliwierdawidowicz.workers.dev";
 
 
 /* =========================================================
-   DEMO DATA
-   Używane jako zapas, jeśli API chwilowo nie odpowiada.
-========================================================= */
+   DATA
+   ========================================================= */
 
-let clans = [
-    {
-        rank: 1,
-        tag: "EXO",
-        name: "EXODO",
-        leader: "Deazzyy",
-        members: 18,
-        money: 4250000,
-        wealth: 12450000,
-        time: 126,
-        change: 2
-    },
-    {
-        rank: 2,
-        tag: "HOD",
-        name: "Hodowla",
-        leader: "d3vki",
-        members: 17,
-        money: 3820000,
-        wealth: 10120000,
-        time: 104,
-        change: 1
-    },
-    {
-        rank: 3,
-        tag: "KGB",
-        name: "KGB",
-        leader: "KGB123",
-        members: 16,
-        money: 3100000,
-        wealth: 9560000,
-        time: 98,
-        change: -1
-    }
-];
-
-
-let players = [
-    {
-        name: "Deazzyy",
-        level: 120,
-        money: 2450000,
-        clan: "EXO",
-        time: 48,
-        online: true
-    },
-    {
-        name: "d3vki",
-        level: 115,
-        money: 2120000,
-        clan: "HOD",
-        time: 42,
-        online: true
-    },
-    {
-        name: "KGB123",
-        level: 112,
-        money: 1890000,
-        clan: "KGB",
-        time: 39,
-        online: false
-    }
-];
-
-
-/* =========================================================
-   API DATA
-========================================================= */
-
-let recentData = [];
-let apiOnline = false;
+let players = [];
+let clans = [];
 
 
 /* =========================================================
    HELPERS
-========================================================= */
+   ========================================================= */
 
 function formatMoney(number) {
 
-    number = Number(number) || 0;
+    if (
+        number === null ||
+        number === undefined ||
+        Number.isNaN(Number(number))
+    ) {
+        return "—";
+    }
 
-    return number.toLocaleString("pl-PL") + "$";
+    return Number(number).toLocaleString("pl-PL") + "$";
 }
 
 
 function formatNumber(number) {
 
-    number = Number(number) || 0;
+    if (
+        number === null ||
+        number === undefined ||
+        Number.isNaN(Number(number))
+    ) {
+        return "—";
+    }
 
-    return number.toLocaleString("pl-PL");
+    return Number(number).toLocaleString("pl-PL");
 }
 
 
 function formatAge(seconds) {
 
-    seconds = Number(seconds) || 0;
+    if (
+        seconds === null ||
+        seconds === undefined ||
+        Number.isNaN(Number(seconds))
+    ) {
+        return "—";
+    }
 
-    const minutes = Math.floor(seconds / 60);
+    const totalMinutes =
+        Math.floor(Number(seconds) / 60);
 
-    const hours = Math.floor(minutes / 60);
+    const days =
+        Math.floor(totalMinutes / 1440);
 
-    const days = Math.floor(hours / 24);
+    const hours =
+        Math.floor(
+            (totalMinutes % 1440) / 60
+        );
+
+    const minutes =
+        totalMinutes % 60;
+
 
     if (days > 0) {
+
         return `${days} dni`;
+
     }
 
     if (hours > 0) {
+
         return `${hours} godz.`;
+
     }
 
-    return `${minutes} min`;
+    return `${minutes} min.`;
 }
 
 
 function changeHTML(change) {
 
     if (change > 0) {
-        return `<span class="change-up">▲ ${change}</span>`;
+
+        return `
+            <span class="change-up">
+                ▲ ${change}
+            </span>
+        `;
+
     }
 
     if (change < 0) {
-        return `<span class="change-down">▼ ${Math.abs(change)}</span>`;
+
+        return `
+            <span class="change-down">
+                ▼ ${Math.abs(change)}
+            </span>
+        `;
+
     }
 
-    return `<span class="change-none">—</span>`;
+    return `
+        <span class="change-none">
+            —
+        </span>
+    `;
 }
 
 
 /* =========================================================
-   LOAD REAL DATA FROM EXODO WORKER
-========================================================= */
+   LOAD REAL DATA FROM WORKER
+   ========================================================= */
 
-async function loadRealData() {
+async function loadHodowlaData() {
 
-    console.log("EXODO → pobieranie danych z API...");
+    console.log(
+        "%cEXODO STATS — pobieranie danych...",
+        "color:#a75aff;font-size:18px;font-weight:bold"
+    );
+
 
     try {
 
@@ -169,17 +150,13 @@ async function loadRealData() {
         }
 
 
-        const result = await response.json();
-
-
-        console.log(
-            "EXODO → odpowiedź API:",
-            result
-        );
+        const result =
+            await response.json();
 
 
         if (
-            !result.success ||
+            !result ||
+            result.success !== true ||
             !Array.isArray(result.data)
         ) {
 
@@ -190,130 +167,114 @@ async function loadRealData() {
         }
 
 
-        recentData = result.data;
+        /*
+         * Dane z Hodowla RP:
+         *
+         * uuid
+         * nick
+         * productId
+         * ageSeconds
+         */
 
-        apiOnline = true;
+        players =
+            result.data.map((player) => {
+
+                return {
+
+                    uuid:
+                        player.uuid || "",
+
+                    name:
+                        player.nick || "Nieznany",
+
+                    level:
+                        null,
+
+                    money:
+                        null,
+
+                    clan:
+                        null,
+
+                    ageSeconds:
+                        Number(
+                            player.ageSeconds
+                        ) || 0,
+
+                    online:
+                        false,
+
+                    productId:
+                        player.productId || ""
+
+                };
+
+            });
 
 
         /*
-         * Dane z Hodowla RP są przede wszystkim
-         * historią ostatnich zakupów / zdarzeń.
-         *
-         * Tworzymy z nich listę graczy.
+         * Usuwamy duplikaty nicków.
+         * Jeśli ten sam gracz kupił kilka produktów,
+         * pokazujemy go tylko raz.
          */
 
-        const uniquePlayers = [];
+        const uniquePlayers =
+            new Map();
 
 
-        recentData.forEach(item => {
+        players.forEach(player => {
 
-            if (!item.nick) return;
+            const key =
+                player.uuid ||
+                player.name.toLowerCase();
 
+            if (!uniquePlayers.has(key)) {
 
-            const exists =
-                uniquePlayers.find(
-                    player =>
-                        player.name === item.nick
+                uniquePlayers.set(
+                    key,
+                    player
                 );
-
-
-            if (!exists) {
-
-                uniquePlayers.push({
-
-                    name: item.nick,
-
-                    level: 0,
-
-                    money: 0,
-
-                    clan: "—",
-
-                    time:
-                        Math.floor(
-                            (Number(item.ageSeconds) || 0) /
-                            86400
-                        ),
-
-                    online: false
-
-                });
 
             }
 
         });
 
 
-        /*
-         * Jeśli API zwróciło graczy,
-         * zastępujemy nimi dane demo.
-         */
-
-        if (uniquePlayers.length > 0) {
-
-            players = uniquePlayers;
-
-        }
-
-
-        /*
-         * Aktualizujemy licznik online.
-         */
-
-        const onlineElement =
-            document.getElementById(
-                "onlinePlayers"
+        players =
+            Array.from(
+                uniquePlayers.values()
             );
 
 
-        if (onlineElement) {
-
-            onlineElement.textContent =
-                formatNumber(
-                    uniquePlayers.length
-                );
-
-        }
-
-
-        /*
-         * Renderujemy wszystko ponownie.
-         */
-
-        renderClanTable();
-
-        renderRichPlayers();
-
-        renderAllRankings();
-
-        renderAllClans();
-
-        renderAllPlayers();
-
-        renderMarket();
-
-        renderRecentActivity();
-
-
-        updateServerStatus(true);
-
-
         console.log(
-            `EXODO → pobrano ${recentData.length} rekordów`
+            "%c✓ Dane pobrane:",
+            "color:#4ade80;font-weight:bold",
+            players
         );
 
-    }
 
-    catch (error) {
+        renderEverything();
 
-        apiOnline = false;
+
+        updateLastUpdate();
+
+
+        showToast(
+            "✓ Pobrano dane z Hodowla RP"
+        );
+
+
+    } catch (error) {
 
         console.error(
-            "EXODO → błąd API:",
+            "❌ Błąd pobierania danych:",
             error
         );
 
-        updateServerStatus(false);
+
+        showToast(
+            "❌ Nie udało się pobrać danych"
+        );
 
     }
 
@@ -321,130 +282,8 @@ async function loadRealData() {
 
 
 /* =========================================================
-   SERVER STATUS
-========================================================= */
-
-function updateServerStatus(online) {
-
-    const status =
-        document.querySelector(
-            ".server-status"
-        );
-
-    if (!status) return;
-
-
-    const text =
-        online
-            ? "ONLINE"
-            : "API OFFLINE";
-
-
-    const color =
-        online
-            ? "#4ade80"
-            : "#f87171";
-
-
-    const span =
-        status.querySelector(
-            "span:last-child"
-        );
-
-
-    if (span) {
-
-        span.textContent = text;
-
-        span.style.color = color;
-
-    }
-
-}
-
-
-/* =========================================================
-   RECENT ACTIVITY
-========================================================= */
-
-function renderRecentActivity() {
-
-    console.log(
-        "EXODO → ostatnie zdarzenia:",
-        recentData
-    );
-
-}
-
-
-/* =========================================================
-   DASHBOARD CLAN TABLE
-========================================================= */
-
-function renderClanTable() {
-
-    const table =
-        document.getElementById(
-            "clanTable"
-        );
-
-    if (!table) return;
-
-
-    table.innerHTML =
-        clans
-            .slice(0, 10)
-            .map(clan => {
-
-                return `
-                    <tr>
-
-                        <td class="rank-number">
-                            ${clan.rank}
-                        </td>
-
-                        <td>
-                            <span class="clan-name">
-                                [${clan.tag}] ${clan.name}
-                            </span>
-                        </td>
-
-                        <td>
-                            ${clan.leader}
-                        </td>
-
-                        <td>
-                            ${clan.members}
-                        </td>
-
-                        <td>
-                            ${formatMoney(clan.money)}
-                        </td>
-
-                        <td>
-                            ${formatMoney(clan.wealth)}
-                        </td>
-
-                        <td>
-                            ${clan.time} dni
-                        </td>
-
-                        <td>
-                            ${changeHTML(clan.change)}
-                        </td>
-
-                    </tr>
-                `;
-
-            })
-            .join("");
-
-}
-
-
-/* =========================================================
-   RICH PLAYERS
-========================================================= */
+   PLAYER TABLE — DASHBOARD
+   ========================================================= */
 
 function renderRichPlayers() {
 
@@ -460,14 +299,15 @@ function renderRichPlayers() {
         [...players]
             .sort(
                 (a, b) =>
-                    b.money - a.money
+                    (b.money || 0) -
+                    (a.money || 0)
             )
             .slice(0, 10);
 
 
     table.innerHTML =
-        sorted
-            .map((player, index) => {
+        sorted.map(
+            (player, index) => {
 
                 return `
                     <tr>
@@ -478,187 +318,182 @@ function renderRichPlayers() {
 
                         <td>
                             <span class="player-name">
-                                ${player.name}
+                                ${escapeHTML(
+                                    player.name
+                                )}
                             </span>
                         </td>
 
                         <td>
-                            ${player.level || "—"}
+                            ${player.level ?? "—"}
                         </td>
 
                         <td>
-                            ${formatMoney(player.money)}
+                            ${
+                                player.money !== null
+                                    ? formatMoney(player.money)
+                                    : "—"
+                            }
                         </td>
 
                         <td>
                             <span class="clan-tag">
-                                [${player.clan}]
+                                ${
+                                    player.clan
+                                        ? `[${escapeHTML(player.clan)}]`
+                                        : "[—]"
+                                }
                             </span>
                         </td>
 
                         <td>
-                            ${player.time} dni
+                            ${formatAge(
+                                player.ageSeconds
+                            )}
                         </td>
 
                     </tr>
                 `;
 
-            })
-            .join("");
-
+            }
+        ).join("");
 }
 
 
 /* =========================================================
-   SMALL RANKINGS
-========================================================= */
+   ALL PLAYERS
+   ========================================================= */
 
-function renderRanking(
-    elementId,
-    data,
-    valueKey,
-    formatter
-) {
-
-    const container =
-        document.getElementById(
-            elementId
-        );
-
-    if (!container) return;
-
-
-    const sorted =
-        [...data]
-            .filter(
-                player =>
-                    Number(
-                        player[valueKey]
-                    ) > 0
-            )
-            .sort(
-                (a, b) =>
-                    b[valueKey] -
-                    a[valueKey]
-            )
-            .slice(0, 5);
-
-
-    if (!sorted.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>Brak danych.</p>
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    const max =
-        sorted[0][valueKey];
-
-
-    container.innerHTML =
-        sorted
-            .map((player, index) => {
-
-                const percentage =
-                    (player[valueKey] / max) *
-                    100;
-
-
-                return `
-                    <div class="ranking-row">
-
-                        <span class="ranking-number">
-                            ${index + 1}
-                        </span>
-
-                        <span class="ranking-name">
-                            ${player.name}
-                        </span>
-
-                        <div class="ranking-bar">
-                            <span
-                                style="
-                                    width:${percentage}%;
-                                "
-                            ></span>
-                        </div>
-
-                        <span class="ranking-value">
-                            ${formatter(
-                                player[valueKey]
-                            )}
-                        </span>
-
-                    </div>
-                `;
-
-            })
-            .join("");
-
-}
-
-
-function renderAllRankings() {
-
-    renderRanking(
-        "levelRanking",
-        players,
-        "level",
-        value => value
-    );
-
-
-    renderRanking(
-        "levelRanking2",
-        players,
-        "level",
-        value => value
-    );
-
-
-    renderRanking(
-        "moneyRanking",
-        players,
-        "money",
-        formatMoney
-    );
-
-
-    renderRanking(
-        "timeRanking",
-        players,
-        "time",
-        value => value + " dni"
-    );
-
-}
-
-
-/* =========================================================
-   ALL CLANS
-========================================================= */
-
-function renderAllClans(
-    list = clans
+function renderAllPlayers(
+    list = players
 ) {
 
     const table =
         document.getElementById(
-            "allClansTable"
+            "allPlayersTable"
         );
 
     if (!table) return;
 
 
     table.innerHTML =
-        list
-            .map(clan => {
+        list.map(
+            (player, index) => {
+
+                /*
+                 * Na tym etapie NIE zgadujemy statusu.
+                 *
+                 * /api/recent nie jest endpointem
+                 * online/offline.
+                 */
+
+                return `
+                    <tr>
+
+                        <td class="rank-number">
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            <span class="player-name">
+                                ${escapeHTML(
+                                    player.name
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${
+                                player.level ?? "—"
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                player.money !== null
+                                    ? formatMoney(player.money)
+                                    : "0$"
+                            }
+                        </td>
+
+                        <td>
+                            <span class="clan-tag">
+                                ${
+                                    player.clan
+                                        ? `[${escapeHTML(player.clan)}]`
+                                        : "[—]"
+                                }
+                            </span>
+                        </td>
+
+                        <td>
+                            ${
+                                player.ageSeconds
+                                    ? formatAge(
+                                        player.ageSeconds
+                                    )
+                                    : "0 dni"
+                            }
+                        </td>
+
+                        <td>
+
+                            <span
+                                style="color:#55515c"
+                            >
+                                ● BRAK DANYCH
+                            </span>
+
+                        </td>
+
+                    </tr>
+                `;
+
+            }
+        ).join("");
+}
+
+
+/* =========================================================
+   CLANS
+   ========================================================= */
+
+function renderClanTable() {
+
+    const table =
+        document.getElementById(
+            "clanTable"
+        );
+
+    if (!table) return;
+
+
+    if (!clans.length) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    <div class="empty-state">
+                        <h3>
+                            Brak danych o klanach
+                        </h3>
+
+                        <p>
+                            Endpoint klanów nie został jeszcze
+                            podłączony.
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    table.innerHTML =
+        clans.map(
+            clan => {
 
                 return `
                     <tr>
@@ -669,12 +504,13 @@ function renderAllClans(
 
                         <td>
                             <span class="clan-name">
-                                [${clan.tag}] ${clan.name}
+                                [${escapeHTML(clan.tag)}]
+                                ${escapeHTML(clan.name)}
                             </span>
                         </td>
 
                         <td>
-                            ${clan.leader}
+                            ${escapeHTML(clan.leader)}
                         </td>
 
                         <td>
@@ -700,93 +536,243 @@ function renderAllClans(
                     </tr>
                 `;
 
-            })
-            .join("");
-
+            }
+        ).join("");
 }
 
 
-/* =========================================================
-   ALL PLAYERS
-========================================================= */
-
-function renderAllPlayers(
-    list = players
+function renderAllClans(
+    list = clans
 ) {
 
     const table =
         document.getElementById(
-            "allPlayersTable"
+            "allClansTable"
         );
 
     if (!table) return;
 
 
+    if (!list.length) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    <div class="empty-state">
+
+                        <h3>
+                            Brak danych o klanach
+                        </h3>
+
+                        <p>
+                            Podłączymy ranking klanów,
+                            gdy będziemy mieli endpoint
+                            klanów Hodowla RP.
+                        </p>
+
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
     table.innerHTML =
-        list
-            .map((player, index) => {
+        list.map(
+            clan => {
 
                 return `
                     <tr>
 
                         <td class="rank-number">
-                            ${index + 1}
+                            ${clan.rank}
                         </td>
 
                         <td>
-                            <span class="player-name">
-                                ${player.name}
+                            <span class="clan-name">
+                                [${escapeHTML(clan.tag)}]
+                                ${escapeHTML(clan.name)}
                             </span>
                         </td>
 
                         <td>
-                            ${player.level || "—"}
+                            ${escapeHTML(clan.leader)}
                         </td>
 
                         <td>
-                            ${formatMoney(
-                                player.money
-                            )}
+                            ${clan.members}
                         </td>
 
                         <td>
-                            <span class="clan-tag">
-                                [${player.clan}]
-                            </span>
+                            ${formatMoney(clan.money)}
                         </td>
 
                         <td>
-                            ${player.time} dni
+                            ${formatMoney(clan.wealth)}
                         </td>
 
                         <td>
+                            ${clan.time} dni
+                        </td>
 
-                            ${
-                                player.online
-                                    ?
-                                    `<span class="positive">
-                                        ● ONLINE
-                                    </span>`
-                                    :
-                                    `<span style="color:#55515c">
-                                        ● OFFLINE
-                                    </span>`
-                            }
-
+                        <td>
+                            ${changeHTML(clan.change)}
                         </td>
 
                     </tr>
                 `;
 
-            })
-            .join("");
+            }
+        ).join("");
+}
+
+
+/* =========================================================
+   RANKINGS
+   ========================================================= */
+
+function renderRanking(
+    elementId,
+    valueKey,
+    formatter
+) {
+
+    const container =
+        document.getElementById(
+            elementId
+        );
+
+    if (!container) return;
+
+
+    const sorted =
+        [...players]
+            .filter(
+                player =>
+                    player[valueKey] !== null &&
+                    player[valueKey] !== undefined
+            )
+            .sort(
+                (a, b) =>
+                    b[valueKey] -
+                    a[valueKey]
+            )
+            .slice(0, 5);
+
+
+    if (!sorted.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+
+                <h3>
+                    Brak danych
+                </h3>
+
+                <p>
+                    Ranking będzie dostępny po
+                    podłączeniu danych graczy.
+                </p>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    const max =
+        sorted[0][valueKey];
+
+
+    container.innerHTML =
+        sorted.map(
+            (player, index) => {
+
+                const percentage =
+                    max > 0
+                        ? (
+                            player[valueKey] /
+                            max
+                        ) * 100
+                        : 0;
+
+
+                return `
+                    <div class="ranking-row">
+
+                        <span class="ranking-number">
+                            ${index + 1}
+                        </span>
+
+                        <span class="ranking-name">
+                            ${escapeHTML(
+                                player.name
+                            )}
+                        </span>
+
+                        <div class="ranking-bar">
+
+                            <span
+                                style="
+                                    width:${percentage}%
+                                "
+                            ></span>
+
+                        </div>
+
+                        <span class="ranking-value">
+                            ${formatter(
+                                player[valueKey]
+                            )}
+                        </span>
+
+                    </div>
+                `;
+
+            }
+        ).join("");
+}
+
+
+function renderAllRankings() {
+
+    renderRanking(
+        "levelRanking",
+        "level",
+        value => value
+    );
+
+
+    renderRanking(
+        "levelRanking2",
+        "level",
+        value => value
+    );
+
+
+    renderRanking(
+        "moneyRanking",
+        "money",
+        formatMoney
+    );
+
+
+    renderRanking(
+        "timeRanking",
+        "ageSeconds",
+        value =>
+            formatAge(value)
+    );
 
 }
 
 
 /* =========================================================
    MARKET
-========================================================= */
+   ========================================================= */
 
 function renderMarket() {
 
@@ -796,6 +782,35 @@ function renderMarket() {
         );
 
     if (!table) return;
+
+
+    if (!clans.length) {
+
+        table.innerHTML = `
+            <tr>
+
+                <td colspan="5">
+
+                    <div class="empty-state">
+
+                        <h3>
+                            Brak danych rynku
+                        </h3>
+
+                        <p>
+                            Dane giełdy klanów nie są
+                            jeszcze podłączone.
+                        </p>
+
+                    </div>
+
+                </td>
+
+            </tr>
+        `;
+
+        return;
+    }
 
 
     const changes = [
@@ -813,8 +828,8 @@ function renderMarket() {
 
 
     table.innerHTML =
-        clans
-            .map((clan, index) => {
+        clans.map(
+            (clan, index) => {
 
                 const change =
                     changes[index] || 0;
@@ -825,8 +840,8 @@ function renderMarket() {
 
                         <td>
                             <span class="clan-name">
-                                [${clan.tag}]
-                                ${clan.name}
+                                [${escapeHTML(clan.tag)}]
+                                ${escapeHTML(clan.name)}
                             </span>
                         </td>
 
@@ -875,392 +890,39 @@ function renderMarket() {
                     </tr>
                 `;
 
-            })
-            .join("");
-
+            }
+        ).join("");
 }
 
 
 /* =========================================================
-   NAVIGATION
-========================================================= */
-
-const navItems =
-    document.querySelectorAll(
-        ".nav-item"
-    );
-
-
-navItems.forEach(item => {
-
-    item.addEventListener(
-        "click",
-        () => {
-
-            const pageName =
-                item.dataset.page;
-
-            openPage(pageName);
-
-        }
-    );
-
-});
-
-
-function openPage(pageName) {
-
-    document
-        .querySelectorAll(".page")
-        .forEach(page => {
-
-            page.classList.remove(
-                "active"
-            );
-
-        });
-
-
-    const target =
-        document.getElementById(
-            pageName
-        );
-
-
-    if (target) {
-
-        target.classList.add(
-            "active"
-        );
-
-    }
-
-
-    navItems.forEach(item => {
-
-        item.classList.toggle(
-            "active",
-            item.dataset.page === pageName
-        );
-
-    });
-
-
-    const title =
-        pageName.charAt(0).toUpperCase() +
-        pageName.slice(1);
-
-
-    document.title =
-        `EXODO STATS — ${title}`;
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-
-    document
-        .getElementById("sidebar")
-        ?.classList.remove("open");
-
-}
-
-
-/* =========================================================
-   DASHBOARD LINKS
-========================================================= */
-
-document
-    .querySelectorAll(
-        "[data-page-link]"
-    )
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                openPage(
-                    button.dataset.pageLink
-                );
-
-            }
-        );
-
-    });
-
-
-/* =========================================================
-   CLAN SEARCH
-========================================================= */
-
-const clanSearch =
-    document.getElementById(
-        "clanSearch"
-    );
-
-
-if (clanSearch) {
-
-    clanSearch.addEventListener(
-        "input",
-        () => {
-
-            const query =
-                clanSearch.value
-                    .toLowerCase()
-                    .trim();
-
-
-            const filtered =
-                clans.filter(clan => {
-
-                    return (
-
-                        clan.name
-                            .toLowerCase()
-                            .includes(query)
-
-                        ||
-
-                        clan.tag
-                            .toLowerCase()
-                            .includes(query)
-
-                        ||
-
-                        clan.leader
-                            .toLowerCase()
-                            .includes(query)
-
-                    );
-
-                });
-
-
-            renderAllClans(
-                filtered
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   CLAN SORT
-========================================================= */
-
-const clanSort =
-    document.getElementById(
-        "clanSort"
-    );
-
-
-if (clanSort) {
-
-    clanSort.addEventListener(
-        "change",
-        () => {
-
-            const sort =
-                clanSort.value;
-
-
-            let sorted =
-                [...clans];
-
-
-            if (sort === "money") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.money -
-                        a.money
-                );
-
-            }
-
-
-            if (sort === "members") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.members -
-                        a.members
-                );
-
-            }
-
-
-            if (sort === "time") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.time -
-                        a.time
-                );
-
-            }
-
-
-            renderAllClans(
-                sorted
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PLAYER SEARCH
-========================================================= */
-
-const playerSearch =
-    document.getElementById(
-        "playerSearch"
-    );
-
-
-if (playerSearch) {
-
-    playerSearch.addEventListener(
-        "input",
-        () => {
-
-            const query =
-                playerSearch.value
-                    .toLowerCase()
-                    .trim();
-
-
-            const filtered =
-                players.filter(player => {
-
-                    return (
-
-                        player.name
-                            .toLowerCase()
-                            .includes(query)
-
-                        ||
-
-                        player.clan
-                            .toLowerCase()
-                            .includes(query)
-
-                    );
-
-                });
-
-
-            renderAllPlayers(
-                filtered
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PLAYER SORT
-========================================================= */
-
-const playerSort =
-    document.getElementById(
-        "playerSort"
-    );
-
-
-if (playerSort) {
-
-    playerSort.addEventListener(
-        "change",
-        () => {
-
-            const sort =
-                playerSort.value;
-
-
-            let sorted =
-                [...players];
-
-
-            if (sort === "money") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.money -
-                        a.money
-                );
-
-            }
-
-
-            if (sort === "level") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.level -
-                        a.level
-                );
-
-            }
-
-
-            if (sort === "time") {
-
-                sorted.sort(
-                    (a, b) =>
-                        b.time -
-                        a.time
-                );
-
-            }
-
-
-            renderAllPlayers(
-                sorted
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   GLOBAL SEARCH
-========================================================= */
-
-const globalSearch =
-    document.getElementById(
-        "globalSearch"
-    );
-
-
-const globalSearchButton =
-    document.getElementById(
-        "globalSearchButton"
-    );
-
+   SEARCH
+   ========================================================= */
 
 function performGlobalSearch(
-    value = null
+    queryOverride = null
 ) {
+
+    const globalSearch =
+        document.getElementById(
+            "globalSearch"
+        );
+
+    const pageSearch =
+        document.getElementById(
+            "globalSearchPage"
+        );
+
 
     const query =
         (
-            value !== null
-                ? value
-                : globalSearch?.value || ""
+            queryOverride !== null
+                ? queryOverride
+                : (
+                    globalSearch?.value ||
+                    pageSearch?.value ||
+                    ""
+                )
         )
         .toLowerCase()
         .trim();
@@ -1270,7 +932,6 @@ function performGlobalSearch(
         document.getElementById(
             "searchResults"
         );
-
 
     if (!results) return;
 
@@ -1287,15 +948,14 @@ function performGlobalSearch(
                 </h3>
 
                 <p>
-                    Wyszukiwarka znajdzie
-                    graczy oraz klany.
+                    Wyszukiwarka znajdzie graczy
+                    oraz klany.
                 </p>
 
             </div>
         `;
 
         return;
-
     }
 
 
@@ -1311,17 +971,12 @@ function performGlobalSearch(
     const foundClans =
         clans.filter(
             clan =>
-
                 clan.name
                     .toLowerCase()
-                    .includes(query)
-
-                ||
-
+                    .includes(query) ||
                 clan.tag
                     .toLowerCase()
                     .includes(query)
-
         );
 
 
@@ -1337,17 +992,26 @@ function performGlobalSearch(
                     <div>
 
                         <strong>
-                            👤 ${player.name}
+                            👤
+                            ${escapeHTML(
+                                player.name
+                            )}
                         </strong>
 
                         <small>
-                            Gracz
+                            Gracz • Hodowla RP
                         </small>
 
                     </div>
 
                     <span class="clan-tag">
-                        [${player.clan}]
+
+                        ${
+                            player.clan
+                                ? `[${escapeHTML(player.clan)}]`
+                                : "[—]"
+                        }
+
                     </span>
 
                 </div>
@@ -1367,13 +1031,13 @@ function performGlobalSearch(
 
                         <strong>
                             🛡️
-                            [${clan.tag}]
-                            ${clan.name}
+                            [${escapeHTML(clan.tag)}]
+                            ${escapeHTML(clan.name)}
                         </strong>
 
                         <small>
                             Klan • lider
-                            ${clan.leader}
+                            ${escapeHTML(clan.leader)}
                         </small>
 
                     </div>
@@ -1413,58 +1077,50 @@ function performGlobalSearch(
 
 
     results.innerHTML = html;
-
-}
-
-
-if (globalSearchButton) {
-
-    globalSearchButton.addEventListener(
-        "click",
-        () => performGlobalSearch()
-    );
-
-}
-
-
-if (globalSearch) {
-
-    globalSearch.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key === "Enter"
-            ) {
-
-                performGlobalSearch();
-
-            }
-
-        }
-    );
-
 }
 
 
 /* =========================================================
-   SEARCH PAGE
-========================================================= */
+   CLAN SEARCH
+   ========================================================= */
 
-const globalSearchPage =
-    document.getElementById(
-        "globalSearchPage"
-    );
+function setupClanSearch() {
+
+    const input =
+        document.getElementById(
+            "clanSearch"
+        );
+
+    if (!input) return;
 
 
-if (globalSearchPage) {
-
-    globalSearchPage.addEventListener(
+    input.addEventListener(
         "input",
         () => {
 
-            performGlobalSearch(
-                globalSearchPage.value
+            const query =
+                input.value
+                    .toLowerCase()
+                    .trim();
+
+
+            const filtered =
+                clans.filter(
+                    clan =>
+                        clan.name
+                            .toLowerCase()
+                            .includes(query) ||
+                        clan.tag
+                            .toLowerCase()
+                            .includes(query) ||
+                        clan.leader
+                            .toLowerCase()
+                            .includes(query)
+                );
+
+
+            renderAllClans(
+                filtered
             );
 
         }
@@ -1474,86 +1130,382 @@ if (globalSearchPage) {
 
 
 /* =========================================================
-   REFRESH
-========================================================= */
+   PLAYER SEARCH
+   ========================================================= */
 
-const refreshButton =
-    document.getElementById(
-        "refreshButton"
+function setupPlayerSearch() {
+
+    const input =
+        document.getElementById(
+            "playerSearch"
+        );
+
+    if (!input) return;
+
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            const query =
+                input.value
+                    .toLowerCase()
+                    .trim();
+
+
+            const filtered =
+                players.filter(
+                    player =>
+                        player.name
+                            .toLowerCase()
+                            .includes(query)
+                );
+
+
+            renderAllPlayers(
+                filtered
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SORTS
+   ========================================================= */
+
+function setupSorts() {
+
+    const clanSort =
+        document.getElementById(
+            "clanSort"
+        );
+
+
+    if (clanSort) {
+
+        clanSort.addEventListener(
+            "change",
+            () => {
+
+                let sorted =
+                    [...clans];
+
+
+                if (
+                    clanSort.value ===
+                    "money"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.money || 0) -
+                            (a.money || 0)
+                    );
+
+                }
+
+
+                if (
+                    clanSort.value ===
+                    "members"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.members || 0) -
+                            (a.members || 0)
+                    );
+
+                }
+
+
+                if (
+                    clanSort.value ===
+                    "time"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.time || 0) -
+                            (a.time || 0)
+                    );
+
+                }
+
+
+                renderAllClans(
+                    sorted
+                );
+
+            }
+        );
+
+    }
+
+
+    const playerSort =
+        document.getElementById(
+            "playerSort"
+        );
+
+
+    if (playerSort) {
+
+        playerSort.addEventListener(
+            "change",
+            () => {
+
+                let sorted =
+                    [...players];
+
+
+                if (
+                    playerSort.value ===
+                    "money"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.money || 0) -
+                            (a.money || 0)
+                    );
+
+                }
+
+
+                if (
+                    playerSort.value ===
+                    "level"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.level || 0) -
+                            (a.level || 0)
+                    );
+
+                }
+
+
+                if (
+                    playerSort.value ===
+                    "time"
+                ) {
+
+                    sorted.sort(
+                        (a, b) =>
+                            (b.ageSeconds || 0) -
+                            (a.ageSeconds || 0)
+                    );
+
+                }
+
+
+                renderAllPlayers(
+                    sorted
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function setupNavigation() {
+
+    const navItems =
+        document.querySelectorAll(
+            ".nav-item"
+        );
+
+
+    navItems.forEach(
+        item => {
+
+            item.addEventListener(
+                "click",
+                () => {
+
+                    openPage(
+                        item.dataset.page
+                    );
+
+                }
+            );
+
+        }
     );
 
 
-const toast =
-    document.getElementById(
-        "toast"
-    );
+    document
+        .querySelectorAll(
+            "[data-page-link]"
+        )
+        .forEach(
+            button => {
 
+                button.addEventListener(
+                    "click",
+                    () => {
 
-if (refreshButton) {
+                        openPage(
+                            button.dataset.pageLink
+                        );
 
-    refreshButton.addEventListener(
-        "click",
-        async () => {
-
-            refreshButton.style.transform =
-                "rotate(360deg)";
-
-
-            setTimeout(() => {
-
-                refreshButton.style.transform =
-                    "";
-
-            }, 500);
-
-
-            await loadRealData();
-
-
-            const now =
-                new Date();
-
-
-            const time =
-                now.toLocaleTimeString(
-                    "pl-PL",
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit"
                     }
                 );
 
+            }
+        );
 
-            const updateElement =
-                document.getElementById(
-                    "lastUpdate"
+}
+
+
+function openPage(
+    pageName
+) {
+
+    document
+        .querySelectorAll(
+            ".page"
+        )
+        .forEach(
+            page => {
+
+                page.classList.remove(
+                    "active"
                 );
 
-
-            if (updateElement) {
-
-                updateElement.textContent =
-                    `dzisiaj, ${time}`;
-
             }
+        );
 
 
-            if (toast) {
+    const target =
+        document.getElementById(
+            pageName
+        );
 
-                toast.classList.add(
-                    "show"
+
+    if (target) {
+
+        target.classList.add(
+            "active"
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(
+            ".nav-item"
+        )
+        .forEach(
+            item => {
+
+                item.classList.toggle(
+                    "active",
+                    item.dataset.page ===
+                    pageName
                 );
 
-
-                setTimeout(() => {
-
-                    toast.classList.remove(
-                        "show"
-                    );
-
-                }, 2500);
-
             }
+        );
+
+
+    const titles = {
+
+        dashboard:
+            "Dashboard",
+
+        clans:
+            "Klany",
+
+        players:
+            "Gracze",
+
+        rankings:
+            "Rankingi",
+
+        charts:
+            "Wykresy",
+
+        market:
+            "Rynek",
+
+        search:
+            "Wyszukiwarka"
+
+    };
+
+
+    document.title =
+        `EXODO STATS — ${
+            titles[pageName] ||
+            "Dashboard"
+        }`;
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+
+    document
+        .getElementById(
+            "sidebar"
+        )
+        ?.classList.remove(
+            "open"
+        );
+
+}
+
+
+/* =========================================================
+   REFRESH
+   ========================================================= */
+
+function setupRefresh() {
+
+    const button =
+        document.getElementById(
+            "refreshButton"
+        );
+
+
+    if (!button) return;
+
+
+    button.addEventListener(
+        "click",
+        async () => {
+
+            button.style.transform =
+                "rotate(360deg)";
+
+
+            setTimeout(
+                () => {
+
+                    button.style.transform =
+                        "";
+
+                },
+                500
+            );
+
+
+            await loadHodowlaData();
 
         }
     );
@@ -1563,56 +1515,203 @@ if (refreshButton) {
 
 /* =========================================================
    MOBILE MENU
-========================================================= */
+   ========================================================= */
 
-const mobileMenu =
-    document.getElementById(
-        "mobileMenu"
-    );
+function setupMobileMenu() {
+
+    const mobileMenu =
+        document.getElementById(
+            "mobileMenu"
+        );
+
+    const sidebar =
+        document.getElementById(
+            "sidebar"
+        );
 
 
-const sidebar =
-    document.getElementById(
-        "sidebar"
-    );
+    if (
+        mobileMenu &&
+        sidebar
+    ) {
+
+        mobileMenu.addEventListener(
+            "click",
+            () => {
+
+                sidebar.classList.toggle(
+                    "open"
+                );
+
+            }
+        );
+
+    }
+
+}
 
 
-if (
-    mobileMenu &&
-    sidebar
+/* =========================================================
+   GLOBAL SEARCH
+   ========================================================= */
+
+function setupGlobalSearch() {
+
+    const input =
+        document.getElementById(
+            "globalSearch"
+        );
+
+
+    if (input) {
+
+        input.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+
+                    performGlobalSearch(
+                        input.value
+                    );
+
+                    openPage(
+                        "search"
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    const pageInput =
+        document.getElementById(
+            "globalSearchPage"
+        );
+
+
+    if (pageInput) {
+
+        pageInput.addEventListener(
+            "input",
+            () => {
+
+                performGlobalSearch(
+                    pageInput.value
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function showToast(
+    message
 ) {
 
-    mobileMenu.addEventListener(
-        "click",
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+
+    if (!toast) return;
+
+
+    toast.textContent =
+        message;
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
         () => {
 
-            sidebar.classList.toggle(
-                "open"
+            toast.classList.remove(
+                "show"
             );
 
-        }
+        },
+        2500
     );
 
 }
 
 
 /* =========================================================
-   ONLINE COUNTER
-========================================================= */
+   LAST UPDATE
+   ========================================================= */
 
-function updateOnlinePlayers() {
+function updateLastUpdate() {
 
     const element =
         document.getElementById(
-            "onlinePlayers"
+            "lastUpdate"
         );
+
 
     if (!element) return;
 
 
-    if (!apiOnline) {
+    const now =
+        new Date();
 
-        element.textContent =
+
+    const time =
+        now.toLocaleTimeString(
+            "pl-PL",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+
+    element.textContent =
+        `dzisiaj, ${time}`;
+
+}
+
+
+/* =========================================================
+   DASHBOARD COUNTERS
+   ========================================================= */
+
+function updateDashboardCounters() {
+
+    const online =
+        document.getElementById(
+            "onlinePlayers"
+        );
+
+
+    if (online) {
+
+        /*
+         * /api/recent nie podaje liczby
+         * graczy online.
+         *
+         * Dlatego nie pokazujemy
+         * fałszywej liczby.
+         */
+
+        online.textContent =
             "—";
 
     }
@@ -1621,8 +1720,43 @@ function updateOnlinePlayers() {
 
 
 /* =========================================================
-   CHART SETUP
-========================================================= */
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   CHARTS
+   ========================================================= */
 
 function setupCanvas(
     canvas
@@ -1636,19 +1770,24 @@ function setupCanvas(
 
 
     const ratio =
-        window.devicePixelRatio || 1;
+        window.devicePixelRatio ||
+        1;
 
 
     canvas.width =
-        rect.width * ratio;
+        rect.width *
+        ratio;
 
 
     canvas.height =
-        rect.height * ratio;
+        rect.height *
+        ratio;
 
 
     const ctx =
-        canvas.getContext("2d");
+        canvas.getContext(
+            "2d"
+        );
 
 
     ctx.setTransform(
@@ -1676,10 +1815,6 @@ function setupCanvas(
 }
 
 
-/* =========================================================
-   LINE CHART
-========================================================= */
-
 function drawLineChart(
     canvasId,
     values,
@@ -1696,7 +1831,9 @@ function drawLineChart(
 
 
     const setup =
-        setupCanvas(canvas);
+        setupCanvas(
+            canvas
+        );
 
 
     if (!setup) return;
@@ -1709,7 +1846,8 @@ function drawLineChart(
     } = setup;
 
 
-    const padding = 35;
+    const padding =
+        35;
 
 
     const chartWidth =
@@ -1728,12 +1866,6 @@ function drawLineChart(
         ) * 1.15;
 
 
-    const min = 0;
-
-
-    ctx.lineWidth = 1;
-
-
     for (
         let i = 0;
         i <= 4;
@@ -1742,7 +1874,10 @@ function drawLineChart(
 
         const y =
             padding +
-            (chartHeight / 4) *
+            (
+                chartHeight /
+                4
+            ) *
             i;
 
 
@@ -1763,6 +1898,10 @@ function drawLineChart(
 
         ctx.strokeStyle =
             "rgba(255,255,255,0.06)";
+
+
+        ctx.lineWidth =
+            1;
 
 
         ctx.stroke();
@@ -1789,13 +1928,15 @@ function drawLineChart(
                 padding +
                 chartHeight -
                 (
-                    (value - min) /
-                    (max - min)
+                    value /
+                    max
                 ) *
                 chartHeight;
 
 
-            if (index === 0) {
+            if (
+                index === 0
+            ) {
 
                 ctx.moveTo(
                     x,
@@ -1819,7 +1960,8 @@ function drawLineChart(
         "#9b5cff";
 
 
-    ctx.lineWidth = 3;
+    ctx.lineWidth =
+        3;
 
 
     ctx.lineJoin =
@@ -1830,7 +1972,8 @@ function drawLineChart(
         "round";
 
 
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur =
+        15;
 
 
     ctx.shadowColor =
@@ -1840,7 +1983,8 @@ function drawLineChart(
     ctx.stroke();
 
 
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur =
+        0;
 
 
     values.forEach(
@@ -1859,8 +2003,8 @@ function drawLineChart(
                 padding +
                 chartHeight -
                 (
-                    (value - min) /
-                    (max - min)
+                    value /
+                    max
                 ) *
                 chartHeight;
 
@@ -1923,10 +2067,6 @@ function drawLineChart(
 }
 
 
-/* =========================================================
-   BAR CHART
-========================================================= */
-
 function drawBarChart(
     canvasId,
     values,
@@ -1943,7 +2083,9 @@ function drawBarChart(
 
 
     const setup =
-        setupCanvas(canvas);
+        setupCanvas(
+            canvas
+        );
 
 
     if (!setup) return;
@@ -1956,7 +2098,8 @@ function drawBarChart(
     } = setup;
 
 
-    const padding = 30;
+    const padding =
+        30;
 
 
     const max =
@@ -1975,10 +2118,9 @@ function drawBarChart(
 
 
     const barWidth =
-        (
-            availableWidth /
-            values.length
-        ) * 0.55;
+        availableWidth /
+        values.length *
+        0.55;
 
 
     values.forEach(
@@ -1992,10 +2134,8 @@ function drawBarChart(
                     values.length
                 ) +
                 (
-                    (
-                        availableWidth /
-                        values.length
-                    ) -
+                    availableWidth /
+                    values.length -
                     barWidth
                 ) / 2;
 
@@ -2043,8 +2183,7 @@ function drawBarChart(
 
 
             if (
-                typeof ctx.roundRect ===
-                "function"
+                ctx.roundRect
             ) {
 
                 ctx.roundRect(
@@ -2084,7 +2223,8 @@ function drawBarChart(
 
             ctx.fillText(
                 labels[index],
-                x + barWidth / 2,
+                x +
+                    barWidth / 2,
                 height - 12
             );
 
@@ -2093,10 +2233,6 @@ function drawBarChart(
 
 }
 
-
-/* =========================================================
-   CREATE CHARTS
-========================================================= */
 
 function createExodoCharts() {
 
@@ -2207,21 +2343,10 @@ function createExodoCharts() {
 
 
 /* =========================================================
-   INITIALIZATION
-========================================================= */
+   RENDER EVERYTHING
+   ========================================================= */
 
-async function initExodo() {
-
-    console.log(
-        "%cEXODO STATS",
-        "color:#a75aff;font-size:24px;font-weight:bold"
-    );
-
-
-    console.log(
-        "Panel uruchomiony."
-    );
-
+function renderEverything() {
 
     renderClanTable();
 
@@ -2235,28 +2360,60 @@ async function initExodo() {
 
     renderMarket();
 
-    updateOnlinePlayers();
+    updateDashboardCounters();
 
-
-    setTimeout(
-        createExodoCharts,
-        300
-    );
-
-
-    /*
-     * NAJWAŻNIEJSZE:
-     * pobieramy prawdziwe dane z Workera.
-     */
-
-    await loadRealData();
+    createExodoCharts();
 
 }
 
 
 /* =========================================================
-   RESIZE
-========================================================= */
+   START
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        console.log(
+            "%cEXODO STATS",
+            "color:#a75aff;font-size:24px;font-weight:bold"
+        );
+
+
+        console.log(
+            "Łączenie z:",
+            API_URL
+        );
+
+
+        setupNavigation();
+
+        setupClanSearch();
+
+        setupPlayerSearch();
+
+        setupSorts();
+
+        setupRefresh();
+
+        setupMobileMenu();
+
+        setupGlobalSearch();
+
+
+        renderEverything();
+
+
+        await loadHodowlaData();
+
+    }
+);
+
+
+/* =========================================================
+   REDRAW CHARTS
+   ========================================================= */
 
 window.addEventListener(
     "resize",
@@ -2279,10 +2436,3 @@ window.addEventListener(
 
     }
 );
-
-
-/* =========================================================
-   START
-========================================================= */
-
-initExodo();
