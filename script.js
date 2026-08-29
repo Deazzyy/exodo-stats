@@ -1,45 +1,28 @@
 /* =========================================================
-   EXODO STATS — SCRIPT.JS
-   API: exodo-api.oliwierdawidowicz.workers.dev
+   EXODO STATS — API + UI
+   Pasuje do obecnego HTML + CSS
    ========================================================= */
 
 const API_BASE =
-    "https://exodo-api.oliwierdawidowicz.workers.dev";
+    "https://exodo-api.oliwierdawidowicz.workers.dev/api";
 
-const RECENT_API =
-    `${API_BASE}/api/recent?limit=20`;
-
-const PLAYER_API =
-    `${API_BASE}/api/player?name=`;
+const API_RECENT = `${API_BASE}/recent?limit=100`;
 
 let players = [];
-let filteredPlayers = [];
+let clans = [];
+let charts = {};
 
-let chartsLoaded = false;
-let activityChart = null;
-let clanChart = null;
-let activityChart2 = null;
-let wealthChart = null;
-
+let currentPlayerSort = "money";
+let currentClanSort = "money";
 
 /* =========================================================
    HELPERS
    ========================================================= */
 
-function $(selector) {
-    return document.querySelector(selector);
-}
-
-function $all(selector) {
-    return document.querySelectorAll(selector);
-}
+const $ = (id) => document.getElementById(id);
 
 function escapeHTML(value) {
-    if (value === null || value === undefined) {
-        return "";
-    }
-
-    return String(value)
+    return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -54,372 +37,436 @@ function formatMoney(value) {
         return "0$";
     }
 
-    return new Intl.NumberFormat("pl-PL").format(number) + "$";
+    return (
+        new Intl.NumberFormat("pl-PL", {
+            maximumFractionDigits: 0
+        }).format(number) + "$"
+    );
 }
 
-function formatLevel(value) {
-    if (
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        Number(value) === 0
-    ) {
-        return "—";
+function formatNumber(value) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        return "0";
     }
 
-    return Number(value).toLocaleString("pl-PL");
+    return new Intl.NumberFormat("pl-PL").format(number);
 }
 
-function getClanName(player) {
-    if (!player || !player.clan) {
-        return "—";
-    }
+function getLevel(player) {
+    const level = Number(player?.level);
 
-    const clan = String(player.clan).trim();
-
-    if (!clan) {
-        return "—";
-    }
-
-    /*
-       API czasami może zwrócić dodatkowe informacje,
-       np. "[ exo ] exo Lider · 18 członków"
-    */
-
-    return clan;
+    return Number.isFinite(level) ? level : 0;
 }
-
-function getActivity(player) {
-    if (!player) {
-        return "—";
-    }
-
-    if (player.status === true) {
-        return "● Gra teraz";
-    }
-
-    if (player.status === "online") {
-        return "● Gra teraz";
-    }
-
-    if (player.status === "ONLINE") {
-        return "● Gra teraz";
-    }
-
-    if (player.playtime && String(player.playtime).trim()) {
-        return String(player.playtime);
-    }
-
-    if (player.lastSeen && String(player.lastSeen).trim()) {
-        return String(player.lastSeen);
-    }
-
-    return "—";
-}
-
-function getStatus(player) {
-    if (!player) {
-        return "—";
-    }
-
-    if (
-        player.status === true ||
-        player.status === "online" ||
-        player.status === "ONLINE"
-    ) {
-        return `<span class="positive">● ONLINE</span>`;
-    }
-
-    return `<span style="color:#6f6a78;">● DANE API</span>`;
-}
-
-function showToast(message) {
-    const toast = $("#toast");
-
-    if (!toast) {
-        return;
-    }
-
-    toast.textContent = message;
-    toast.classList.add("show");
-
-    clearTimeout(window.__toastTimer);
-
-    window.__toastTimer = setTimeout(() => {
-        toast.classList.remove("show");
-    }, 2500);
-}
-
 
 /* =========================================================
-   API
+   CLAN PARSER
+   ========================================================= */
+
+function parseClan(value) {
+    if (!value) {
+        return {
+            name: "",
+            tag: "",
+            role: "",
+            members: 0
+        };
+    }
+
+    const text = String(value).replace(/\s+/g, " ").trim();
+
+    /*
+       Przykłady z API:
+
+       "[ exo ] exo Lider · 18 członków"
+       "[ PPPB ] pppb Członek · 18 członków"
+       "[ KWE ] kwe Zastępca · 10 członków"
+       "Nie należy do żadnego klanu..."
+    */
+
+    if (/nie należy do żadnego klanu/i.test(text)) {
+        return {
+            name: "",
+            tag: "",
+            role: "",
+            members: 0
+        };
+    }
+
+    const match = text.match(
+        /\[\s*([^\]]+?)\s*\]\s*([^\s]+)?\s*(Lider|Zastępca|Członek)?\s*[·\-]?\s*(\d+)?\s*członków?/i
+    );
+
+    if (!match) {
+        return {
+            name: "",
+            tag: "",
+            role: "",
+            members: 0
+        };
+    }
+
+    return {
+        tag: (match[1] || "").trim(),
+        name: (match[2] || match[1] || "").trim(),
+        role: (match[3] || "").trim(),
+        members: Number(match[4] || 0)
+    };
+}
+
+/* =========================================================
+   ACTIVITY / STATUS
+   ========================================================= */
+
+function getActivityText(player) {
+    const lastSeen = String(player?.lastSeen || "").trim();
+    const playtime = String(player?.playtime || "").trim();
+
+    if (/teraz gra/i.test(lastSeen)) {
+        return "Teraz gra na serwerze";
+    }
+
+    if (/teraz gra/i.test(playtime)) {
+        return "Teraz gra na serwerze";
+    }
+
+    if (lastSeen) {
+        return lastSeen;
+    }
+
+    if (playtime) {
+        return playtime;
+    }
+
+    return "Brak danych";
+}
+
+function isOnline(player) {
+    const status = String(player?.status ?? "").toLowerCase();
+
+    const activity = getActivityText(player).toLowerCase();
+
+    if (
+        status === "online" ||
+        status === "true" ||
+        status === "playing"
+    ) {
+        return true;
+    }
+
+    if (
+        activity.includes("teraz gra") ||
+        activity.includes("online") ||
+        activity.includes("gra na serwerze")
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+function getStatusHTML(player) {
+    if (isOnline(player)) {
+        return `
+            <span style="color:#4ade80;font-weight:600;">
+                ● ONLINE
+            </span>
+        `;
+    }
+
+    return `
+        <span style="color:#6f6a78;">
+            ● OFFLINE
+        </span>
+    `;
+}
+
+/* =========================================================
+   FETCH
    ========================================================= */
 
 async function fetchJSON(url) {
     const response = await fetch(url, {
         method: "GET",
-        cache: "no-store",
         headers: {
-            "Accept": "application/json"
-        }
+            Accept: "application/json"
+        },
+        cache: "no-store"
     });
 
     if (!response.ok) {
         throw new Error(
-            `HTTP ${response.status} — ${response.statusText}`
+            `HTTP ${response.status} — ${url}`
         );
     }
 
-    const data = await response.json();
-
-    return data;
+    return await response.json();
 }
 
-
 /* =========================================================
-   LOAD PLAYERS
+   LOAD RECENT PLAYERS
    ========================================================= */
 
 async function loadPlayers() {
+    const data = await fetchJSON(API_RECENT);
 
-    console.log("EXODO: pobieram graczy...");
+    if (!data || !Array.isArray(data.players)) {
+        throw new Error("API /recent nie zwróciło tablicy players.");
+    }
 
-    try {
+    const basicPlayers = data.players;
 
-        const data = await fetchJSON(RECENT_API);
+    /*
+       /recent ma czasami niepełne dane.
+       Dlatego dla każdego gracza pobieramy /player.
+    */
 
-        console.log("EXODO API:", data);
+    const enriched = await Promise.all(
+        basicPlayers.map(async (basicPlayer) => {
+            try {
+                const name = basicPlayer.name;
 
-        if (!data || data.success !== true) {
-            throw new Error("API zwróciło success=false");
-        }
+                if (!name) {
+                    return basicPlayer;
+                }
 
-        if (!Array.isArray(data.players)) {
-            throw new Error("API nie zwróciło tablicy players");
-        }
+                const url =
+                    `${API_BASE}/player?name=${encodeURIComponent(name)}`;
 
-        players = data.players.map(player => ({
-            name: player.name || "Nieznany",
-            level: Number(player.level) || 0,
-            money: Number(player.money) || 0,
-            playtime: player.playtime || "",
-            clan: player.clan || "",
-            rank: player.rank || "",
-            status: player.status,
-            lastSeen: player.lastSeen || "",
-            playerId: player.playerId || null,
-            source: player.source || "hodowlarp.pl",
-            sourceUrl: player.sourceUrl || ""
-        }));
+                const result = await fetchJSON(url);
 
-        filteredPlayers = [...players];
+                if (result?.success && result?.player) {
+                    return {
+                        ...basicPlayer,
+                        ...result.player,
 
-        console.log(
-            `EXODO: załadowano ${players.length} graczy`
+                        // name z /recent jest pewniejsze
+                        name: basicPlayer.name
+                    };
+                }
+
+                return basicPlayer;
+            } catch (error) {
+                console.warn(
+                    `Nie udało się pobrać danych gracza ${basicPlayer.name}`,
+                    error
+                );
+
+                return basicPlayer;
+            }
+        })
+    );
+
+    players = enriched.map((player) => {
+        const clanData = parseClan(
+            player.clan || player.rank || ""
         );
 
-        renderEverything();
+        return {
+            ...player,
 
-    } catch (error) {
+            name: player.name || "Nieznany",
+            level: getLevel(player),
+            money: Number(player.money) || 0,
 
-        console.error("EXODO API ERROR:", error);
+            clanData,
 
-        showToast("❌ Nie udało się pobrać danych API");
+            activity: getActivityText(player),
 
-        renderErrorState(error.message);
-    }
+            online: isOnline(player)
+        };
+    });
+
+    buildClans();
+
+    return players;
 }
-
 
 /* =========================================================
-   RENDER EVERYTHING
+   BUILD CLANS FROM PLAYERS
    ========================================================= */
 
-function renderEverything() {
+function buildClans() {
+    const map = new Map();
 
-    renderStats();
+    players.forEach((player) => {
+        const clan = player.clanData;
 
-    renderPlayersTable();
+        if (!clan || !clan.name) {
+            return;
+        }
 
-    renderRichPlayers();
+        const key =
+            clan.tag ||
+            clan.name.toLowerCase();
 
-    renderLevelRankings();
+        if (!map.has(key)) {
+            map.set(key, {
+                name: clan.name,
+                tag: clan.tag,
+                members: clan.members || 0,
+                cash: 0,
+                players: [],
+                leader: "—"
+            });
+        }
 
-    renderMoneyRanking();
+        const current = map.get(key);
 
-    renderSearchResults();
+        current.cash += Number(player.money) || 0;
 
-    renderMarket();
+        current.players.push(player);
 
-    renderClanTables();
+        if (
+            /lider/i.test(clan.role) &&
+            current.leader === "—"
+        ) {
+            current.leader = player.name;
+        }
 
-    updateCharts();
+        if (clan.members > current.members) {
+            current.members = clan.members;
+        }
+    });
+
+    clans = Array.from(map.values());
+
+    clans.forEach((clan) => {
+        if (clan.members <= 0) {
+            clan.members = clan.players.length;
+        }
+    });
 }
-
 
 /* =========================================================
    DASHBOARD STATS
    ========================================================= */
 
-function renderStats() {
-
-    const statCards =
-        $all(".stat-card");
+function updateDashboardStats() {
+    const statCards = document.querySelectorAll(".stat-card");
 
     if (!statCards.length) {
         return;
     }
 
-    /*
-       API /recent nie podaje całkowitej liczby
-       wszystkich graczy serwera.
+    const online = players.filter(
+        (player) => player.online
+    ).length;
 
-       Dlatego pokazujemy liczbę rekordów,
-       które faktycznie zwróciło API.
+    const totalMoney = players.reduce(
+        (sum, player) =>
+            sum + (Number(player.money) || 0),
+        0
+    );
+
+    /*
+       Pierwsza karta
     */
 
-    const playerCount = players.length;
+    const playerValue =
+        statCards[0]?.querySelector(".stat-value");
 
-    let onlineCount = 0;
-
-    players.forEach(player => {
-
-        if (
-            player.status === true ||
-            player.status === "online" ||
-            player.status === "ONLINE"
-        ) {
-            onlineCount++;
-        }
-
-    });
-
-    let totalMoney = 0;
-
-    players.forEach(player => {
-        totalMoney += Number(player.money) || 0;
-    });
-
-
-    const values =
-        statCards
-            ? [...statCards].map(card =>
-                card.querySelector(".stat-value")
-            )
-            : [];
-
-
-    if (values[0]) {
-        values[0].textContent =
-            playerCount.toLocaleString("pl-PL");
-    }
-
-    if (values[1]) {
-        values[1].textContent =
-            onlineCount.toLocaleString("pl-PL");
+    if (playerValue) {
+        playerValue.textContent =
+            formatNumber(players.length);
     }
 
     /*
-       Nie udajemy, że znamy liczbę klanów,
-       jeżeli API /recent jej nie zwraca.
+       Online
     */
 
-    if (values[2]) {
+    const onlineValue =
+        $("onlinePlayers");
 
-        const clans = getUniqueClans();
-
-        values[2].textContent =
-            clans.length.toLocaleString("pl-PL");
-
+    if (onlineValue) {
+        onlineValue.textContent =
+            formatNumber(online);
     }
 
-    if (values[3]) {
+    /*
+       Klany
+    */
 
-        values[3].textContent =
-            formatCompactMoney(totalMoney);
+    const clanValue =
+        statCards[2]?.querySelector(".stat-value");
 
+    if (clanValue) {
+        clanValue.textContent =
+            formatNumber(clans.length);
     }
 
+    /*
+       Majątek
+    */
 
-    if (statCards[0]) {
+    const moneyValue =
+        statCards[3]?.querySelector(".stat-value");
 
-        const change =
-            statCards[0].querySelector(".stat-change");
+    if (moneyValue) {
+        moneyValue.textContent =
+            formatLargeMoney(totalMoney);
+    }
 
-        if (change) {
+    /*
+       Usuwamy fałszywe zmiany procentowe.
+    */
+
+    const changes =
+        document.querySelectorAll(".stat-change");
+
+    changes.forEach((change, index) => {
+        if (index === 0) {
             change.textContent =
-                `Dane API · ${playerCount} rekordów`;
+                "Dane z EXODO API";
         }
 
-    }
-
-
-    if (statCards[1]) {
-
-        const change =
-            statCards[1].querySelector(".stat-change");
-
-        if (change) {
+        if (index === 1) {
             change.textContent =
-                onlineCount > 0
-                    ? "Gracze online"
-                    : "Brak statusu online w API";
+                online > 0
+                    ? "Gracze aktualnie online"
+                    : "Brak graczy online";
         }
 
-    }
-
-
-    if (statCards[2]) {
-
-        const change =
-            statCards[2].querySelector(".stat-change");
-
-        if (change) {
+        if (index === 2) {
             change.textContent =
-                "Na podstawie danych API";
+                "Wykryte na podstawie danych graczy";
         }
 
-    }
-
-
-    if (statCards[3]) {
-
-        const change =
-            statCards[3].querySelector(".stat-change");
-
-        if (change) {
+        if (index === 3) {
             change.textContent =
-                "Suma danych z API";
+                "Suma gotówki graczy";
         }
-
-    }
-
+    });
 }
 
-
-/* =========================================================
-   MONEY FORMAT
-   ========================================================= */
-
-function formatCompactMoney(value) {
-
+function formatLargeMoney(value) {
     const number = Number(value) || 0;
+
+    if (number >= 1_000_000_000_000) {
+        return (
+            (number / 1_000_000_000_000)
+                .toFixed(2)
+                .replace(".", ",") +
+            "T$"
+        );
+    }
 
     if (number >= 1_000_000_000) {
         return (
             (number / 1_000_000_000)
-                .toFixed(1)
-                .replace(".", ",")
-            + " mld$"
+                .toFixed(2)
+                .replace(".", ",") +
+            "B$"
         );
     }
 
     if (number >= 1_000_000) {
         return (
             (number / 1_000_000)
-                .toFixed(1)
-                .replace(".", ",")
-            + "M$"
+                .toFixed(2)
+                .replace(".", ",") +
+            "M$"
         );
     }
 
@@ -427,74 +474,72 @@ function formatCompactMoney(value) {
         return (
             (number / 1_000)
                 .toFixed(1)
-                .replace(".", ",")
-            + "K$"
+                .replace(".", ",") +
+            "K$"
         );
     }
 
     return formatMoney(number);
 }
 
-
 /* =========================================================
-   PLAYERS TABLE
+   PLAYER TABLE
    ========================================================= */
 
+function sortPlayers(list) {
+    const copy = [...list];
+
+    switch (currentPlayerSort) {
+        case "level":
+            return copy.sort(
+                (a, b) =>
+                    getLevel(b) - getLevel(a)
+            );
+
+        case "time":
+            return copy.sort((a, b) => {
+                if (a.online && !b.online) return -1;
+                if (!a.online && b.online) return 1;
+
+                return 0;
+            });
+
+        case "money":
+        default:
+            return copy.sort(
+                (a, b) =>
+                    (Number(b.money) || 0) -
+                    (Number(a.money) || 0)
+            );
+    }
+}
+
 function renderPlayersTable() {
+    const table = $("allPlayersTable");
 
-    const table =
-        $("#allPlayersTable");
+    if (!table) return;
 
-    if (!table) {
-        return;
-    }
+    const search =
+        ($("playerSearch")?.value || "")
+            .trim()
+            .toLowerCase();
 
-    let list = [...filteredPlayers];
+    let list = players.filter((player) =>
+        player.name
+            .toLowerCase()
+            .includes(search)
+    );
 
-    const sort =
-        $("#playerSort")
-            ? $("#playerSort").value
-            : "money";
-
-
-    if (sort === "money") {
-
-        list.sort(
-            (a, b) =>
-                Number(b.money) -
-                Number(a.money)
-        );
-
-    } else if (sort === "level") {
-
-        list.sort(
-            (a, b) =>
-                Number(b.level) -
-                Number(a.level)
-        );
-
-    } else if (sort === "time") {
-
-        list.sort(
-            (a, b) =>
-                String(a.lastSeen || "")
-                    .localeCompare(
-                        String(b.lastSeen || "")
-                    )
-        );
-
-    }
-
+    list = sortPlayers(list);
 
     if (!list.length) {
-
         table.innerHTML = `
             <tr>
                 <td colspan="7">
                     <div class="empty-state">
                         <div>⌕</div>
-                        <h3>Brak graczy</h3>
-                        <p>API nie zwróciło wyników.</p>
+                        <h3>Nie znaleziono gracza</h3>
+                        <p>Spróbuj innej nazwy.</p>
                     </div>
                 </td>
             </tr>
@@ -503,98 +548,12 @@ function renderPlayersTable() {
         return;
     }
 
-
-    table.innerHTML =
-        list.map((player, index) => {
-
-            const sourceUrl =
-                player.sourceUrl ||
-                `${"https://hodowlarp.pl/gracz/"}${encodeURIComponent(player.name)}`;
+    table.innerHTML = list
+        .map((player, index) => {
+            const clan = player.clanData;
 
             return `
                 <tr>
-
-                    <td class="rank-number">
-                        ${index + 1}
-                    </td>
-
-                    <td>
-                        <a
-                            href="${escapeHTML(sourceUrl)}"
-                            target="_blank"
-                            rel="noopener"
-                            style="text-decoration:none;"
-                        >
-                            <span class="player-name">
-                                ${escapeHTML(player.name)}
-                            </span>
-                        </a>
-                    </td>
-
-                    <td>
-                        ${formatLevel(player.level)}
-                    </td>
-
-                    <td>
-                        <span class="positive">
-                            ${formatMoney(player.money)}
-                        </span>
-                    </td>
-
-                    <td>
-                        ${
-                            player.clan
-                                ? `<span class="clan-tag">
-                                    ${escapeHTML(getClanName(player))}
-                                   </span>`
-                                : "—"
-                        }
-                    </td>
-
-                    <td>
-                        ${escapeHTML(getActivity(player))}
-                    </td>
-
-                    <td>
-                        ${getStatus(player)}
-                    </td>
-
-                </tr>
-            `;
-
-        }).join("");
-}
-
-
-/* =========================================================
-   RICH PLAYERS
-   ========================================================= */
-
-function renderRichPlayers() {
-
-    const table =
-        $("#richPlayersTable");
-
-    if (!table) {
-        return;
-    }
-
-    const list =
-        [...players]
-            .sort(
-                (a, b) =>
-                    Number(b.money) -
-                    Number(a.money)
-            )
-            .slice(0, 10);
-
-
-    table.innerHTML =
-        list.map((player, index) => {
-
-            return `
-                <tr>
-
                     <td class="rank-number">
                         ${index + 1}
                     </td>
@@ -606,7 +565,7 @@ function renderRichPlayers() {
                     </td>
 
                     <td>
-                        ${formatLevel(player.level)}
+                        ${getLevel(player)}
                     </td>
 
                     <td>
@@ -617,161 +576,329 @@ function renderRichPlayers() {
 
                     <td>
                         ${
-                            player.clan
-                                ? `<span class="clan-tag">
-                                    ${escapeHTML(player.clan)}
-                                   </span>`
+                            clan?.name
+                                ? `
+                                    <span class="clan-tag">
+                                        [${escapeHTML(clan.tag || clan.name)}]
+                                    </span>
+                                    ${escapeHTML(clan.name)}
+                                `
                                 : "—"
                         }
                     </td>
 
                     <td>
-                        ${escapeHTML(getActivity(player))}
+                        ${escapeHTML(player.activity)}
+                    </td>
+
+                    <td>
+                        ${getStatusHTML(player)}
+                    </td>
+                </tr>
+            `;
+        })
+        .join("");
+}
+
+/* =========================================================
+   RICH PLAYERS
+   ========================================================= */
+
+function renderRichPlayers() {
+    const table = $("richPlayersTable");
+
+    if (!table) return;
+
+    const list = [...players]
+        .sort(
+            (a, b) =>
+                (Number(b.money) || 0) -
+                (Number(a.money) || 0)
+        )
+        .slice(0, 10);
+
+    table.innerHTML = list
+        .map((player, index) => {
+            const clan = player.clanData;
+
+            return `
+                <tr>
+                    <td class="rank-number">
+                        ${index + 1}
+                    </td>
+
+                    <td>
+                        <span class="player-name">
+                            ${escapeHTML(player.name)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${getLevel(player)}
+                    </td>
+
+                    <td>
+                        <span class="positive">
+                            ${formatMoney(player.money)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${
+                            clan?.name
+                                ? escapeHTML(clan.name)
+                                : "—"
+                        }
+                    </td>
+
+                    <td>
+                        ${escapeHTML(player.activity)}
+                    </td>
+                </tr>
+            `;
+        })
+        .join("");
+}
+
+/* =========================================================
+   CLAN TABLE
+   ========================================================= */
+
+function sortClans(list) {
+    const copy = [...list];
+
+    switch (currentClanSort) {
+        case "members":
+            return copy.sort(
+                (a, b) =>
+                    b.members - a.members
+            );
+
+        case "time":
+            return copy.sort((a, b) => {
+                const aOnline =
+                    a.players.some((p) => p.online);
+
+                const bOnline =
+                    b.players.some((p) => p.online);
+
+                if (aOnline && !bOnline) return -1;
+                if (!aOnline && bOnline) return 1;
+
+                return 0;
+            });
+
+        case "money":
+        default:
+            return copy.sort(
+                (a, b) =>
+                    b.cash - a.cash
+            );
+    }
+}
+
+function renderClansTable(targetId = "allClansTable") {
+    const table = $(targetId);
+
+    if (!table) return;
+
+    const search =
+        ($("clanSearch")?.value || "")
+            .trim()
+            .toLowerCase();
+
+    let list = clans.filter((clan) => {
+        return (
+            clan.name
+                .toLowerCase()
+                .includes(search) ||
+            clan.tag
+                .toLowerCase()
+                .includes(search)
+        );
+    });
+
+    list = sortClans(list);
+
+    if (!list.length) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    <div class="empty-state">
+                        <div>♛</div>
+                        <h3>Brak klanów</h3>
+                        <p>
+                            API nie zwróciło danych o klanach.
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    table.innerHTML = list
+        .map((clan, index) => {
+            const online =
+                clan.players.filter(
+                    (player) => player.online
+                ).length;
+
+            return `
+                <tr>
+
+                    <td class="rank-number">
+                        ${index + 1}
+                    </td>
+
+                    <td>
+                        <span class="clan-tag">
+                            [${escapeHTML(clan.tag || clan.name)}]
+                        </span>
+
+                        <span class="clan-name">
+                            ${escapeHTML(clan.name)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${escapeHTML(clan.leader)}
+                    </td>
+
+                    <td>
+                        ${formatNumber(clan.members)}
+                    </td>
+
+                    <td>
+                        <span class="positive">
+                            ${formatMoney(clan.cash)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${formatMoney(clan.cash)}
+                    </td>
+
+                    <td>
+                        ${
+                            online > 0
+                                ? `${online} online`
+                                : "Brak online"
+                        }
+                    </td>
+
+                    <td class="change-none">
+                        —
                     </td>
 
                 </tr>
             `;
-
-        }).join("");
+        })
+        .join("");
 }
-
 
 /* =========================================================
-   LEVEL RANKINGS
+   LEVEL RANKING
    ========================================================= */
 
-function renderLevelRankings() {
+function renderLevelRanking(targetId = "levelRanking") {
+    const container = $(targetId);
 
-    const containers = [
-        $("#levelRanking"),
-        $("#levelRanking2")
-    ];
+    if (!container) return;
 
-    containers.forEach(container => {
+    const list = [...players]
+        .sort(
+            (a, b) =>
+                getLevel(b) -
+                getLevel(a)
+        )
+        .slice(0, 10);
 
-        if (!container) {
-            return;
-        }
+    if (!list.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div>★</div>
+                <h3>Brak danych</h3>
+            </div>
+        `;
 
-        const list =
-            [...players]
-                .sort(
-                    (a, b) =>
-                        Number(b.level) -
-                        Number(a.level)
-                )
-                .slice(0, 10);
+        return;
+    }
 
+    const max =
+        Math.max(
+            ...list.map((player) =>
+                getLevel(player)
+            ),
+            1
+        );
 
-        if (!list.length) {
+    container.innerHTML = list
+        .map((player, index) => {
+            const percent =
+                (getLevel(player) / max) * 100;
 
-            container.innerHTML =
-                `<div class="empty-state">
-                    Brak danych
-                 </div>`;
+            return `
+                <div class="ranking-row">
 
-            return;
-        }
-
-
-        const maxLevel =
-            Math.max(
-                ...list.map(
-                    player =>
-                        Number(player.level) || 0
-                ),
-                1
-            );
-
-
-        container.innerHTML =
-            list.map((player, index) => {
-
-                const level =
-                    Number(player.level) || 0;
-
-                const percent =
-                    Math.max(
-                        4,
-                        (level / maxLevel) * 100
-                    );
-
-
-                return `
-                    <div class="ranking-row">
-
-                        <div class="ranking-number">
-                            ${index + 1}
-                        </div>
-
-                        <div class="ranking-name">
-                            ${escapeHTML(player.name)}
-                        </div>
-
-                        <div class="ranking-bar">
-                            <span
-                                style="width:${percent}%"
-                            ></span>
-                        </div>
-
-                        <div class="ranking-value">
-                            ${level} lvl
-                        </div>
-
+                    <div class="ranking-number">
+                        ${index + 1}
                     </div>
-                `;
 
-            }).join("");
+                    <div class="ranking-name">
+                        ${escapeHTML(player.name)}
+                    </div>
 
-    });
+                    <div class="ranking-bar">
+                        <span
+                            style="width:${percent}%"
+                        ></span>
+                    </div>
+
+                    <div class="ranking-value">
+                        LVL ${getLevel(player)}
+                    </div>
+
+                </div>
+            `;
+        })
+        .join("");
 }
-
 
 /* =========================================================
    MONEY RANKING
    ========================================================= */
 
 function renderMoneyRanking() {
+    const container = $("moneyRanking");
 
-    const container =
-        $("#moneyRanking");
+    if (!container) return;
 
-    if (!container) {
-        return;
-    }
+    const list = [...players]
+        .sort(
+            (a, b) =>
+                (Number(b.money) || 0) -
+                (Number(a.money) || 0)
+        )
+        .slice(0, 10);
 
-    const list =
-        [...players]
-            .sort(
-                (a, b) =>
-                    Number(b.money) -
-                    Number(a.money)
-            )
-            .slice(0, 10);
-
-
-    const maxMoney =
+    const max =
         Math.max(
             ...list.map(
-                player =>
+                (player) =>
                     Number(player.money) || 0
             ),
             1
         );
 
-
-    container.innerHTML =
-        list.map((player, index) => {
-
+    container.innerHTML = list
+        .map((player, index) => {
             const money =
                 Number(player.money) || 0;
 
             const percent =
-                Math.max(
-                    money > 0 ? 4 : 1,
-                    (money / maxMoney) * 100
-                );
-
+                (money / max) * 100;
 
             return `
                 <div class="ranking-row">
@@ -796,751 +923,27 @@ function renderMoneyRanking() {
 
                 </div>
             `;
-
-        }).join("");
+        })
+        .join("");
 }
-
 
 /* =========================================================
-   CLANS
+   DASHBOARD CLAN TABLE
    ========================================================= */
 
-function getUniqueClans() {
-
-    const clans =
-        players
-            .map(player =>
-                String(player.clan || "").trim()
-            )
-            .filter(Boolean);
-
-
-    return [...new Set(clans)];
-}
-
-
-function getClanPlayers(clan) {
-
-    return players.filter(player =>
-        String(player.clan || "")
-            .toLowerCase()
-            .includes(
-                String(clan).toLowerCase()
-            )
-    );
-
-}
-
-
-function buildClanData() {
-
-    const clans = getUniqueClans();
-
-    return clans.map(clan => {
-
-        const members =
-            getClanPlayers(clan);
-
-        const money =
-            members.reduce(
-                (sum, player) =>
-                    sum +
-                    (Number(player.money) || 0),
-                0
-            );
-
-        const leader =
-            members.find(player =>
-                String(player.rank || "")
-                    .toLowerCase()
-                    .includes("lider")
-            );
-
-
-        return {
-            name: clan,
-            leader:
-                leader
-                    ? leader.name
-                    : "—",
-            members: members.length,
-            money: money,
-            wealth: money,
-            activity: members.length
-        };
-
-    });
-
-}
-
-
-function renderClanTables() {
-
-    const clanData =
-        buildClanData();
-
-    const tables = [
-        $("#clanTable"),
-        $("#allClansTable")
-    ];
-
-
-    tables.forEach(table => {
-
-        if (!table) {
-            return;
-        }
-
-
-        if (!clanData.length) {
-
-            table.innerHTML = `
-                <tr>
-                    <td colspan="8">
-                        <div class="empty-state">
-                            <div>♛</div>
-                            <h3>Brak danych o klanach</h3>
-                            <p>
-                                API /recent nie zwraca aktualnie
-                                informacji o klanach.
-                            </p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-
-            return;
-        }
-
-
-        table.innerHTML =
-            clanData
-                .sort(
-                    (a, b) =>
-                        b.money - a.money
-                )
-                .map((clan, index) => {
-
-                    return `
-                        <tr>
-
-                            <td class="rank-number">
-                                ${index + 1}
-                            </td>
-
-                            <td>
-                                <span class="clan-tag">
-                                    ${escapeHTML(clan.name)}
-                                </span>
-                            </td>
-
-                            <td>
-                                ${escapeHTML(clan.leader)}
-                            </td>
-
-                            <td>
-                                ${clan.members}
-                            </td>
-
-                            <td>
-                                ${formatMoney(clan.money)}
-                            </td>
-
-                            <td>
-                                ${formatMoney(clan.wealth)}
-                            </td>
-
-                            <td>
-                                ${clan.activity}
-                            </td>
-
-                            <td class="change-none">
-                                —
-                            </td>
-
-                        </tr>
-                    `;
-
-                }).join("");
-
-    });
-
-}
-
-
-/* =========================================================
-   MARKET
-   ========================================================= */
-
-function renderMarket() {
-
-    const table =
-        $("#marketTable");
-
-    if (!table) {
-        return;
-    }
-
-    const clans =
-        buildClanData()
-            .sort(
-                (a, b) =>
-                    b.money - a.money
-            )
-            .slice(0, 20);
-
-
-    if (!clans.length) {
-
-        table.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    <div class="empty-state">
-                        <div>◆</div>
-                        <h3>Brak danych rynku</h3>
-                        <p>
-                            API nie zwraca jeszcze
-                            historii wartości klanów.
-                        </p>
-                    </div>
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    table.innerHTML =
-        clans.map(clan => {
-
-            return `
-                <tr>
-
-                    <td>
-                        <span class="clan-name">
-                            ${escapeHTML(clan.name)}
-                        </span>
-                    </td>
-
-                    <td>
-                        ${formatMoney(clan.wealth)}
-                    </td>
-
-                    <td class="change-none">
-                        —
-                    </td>
-
-                    <td class="change-none">
-                        —
-                    </td>
-
-                    <td>
-                        <span class="positive">
-                            ● DANE API
-                        </span>
-                    </td>
-
-                </tr>
-            `;
-
-        }).join("");
-}
-
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-function searchPlayers(query) {
-
-    const text =
-        String(query || "")
-            .trim()
-            .toLowerCase();
-
-
-    if (!text) {
-        filteredPlayers = [...players];
-    } else {
-
-        filteredPlayers =
-            players.filter(player => {
-
-                return (
-                    String(player.name || "")
-                        .toLowerCase()
-                        .includes(text)
-                    ||
-                    String(player.clan || "")
-                        .toLowerCase()
-                        .includes(text)
-                );
-
-            });
-
-    }
-
-
-    renderPlayersTable();
-}
-
-
-function renderSearchResults() {
-
-    const container =
-        $("#searchResults");
-
-    if (!container) {
-        return;
-    }
-
-
-    const input =
-        $("#globalSearchPage");
-
-    const query =
-        input
-            ? input.value.trim().toLowerCase()
-            : "";
-
-
-    if (!query) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-
-                <div>⌕</div>
-
-                <h3>
-                    Wpisz nazwę powyżej
-                </h3>
-
-                <p>
-                    Wyszukiwarka znajdzie graczy
-                    oraz klany.
-                </p>
-
-            </div>
-        `;
-
-        return;
-    }
-
-
-    const results =
-        players.filter(player => {
-
-            return (
-                String(player.name || "")
-                    .toLowerCase()
-                    .includes(query)
-                ||
-                String(player.clan || "")
-                    .toLowerCase()
-                    .includes(query)
-            );
-
-        });
-
-
-    if (!results.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-
-                <div>⌕</div>
-
-                <h3>
-                    Nie znaleziono
-                </h3>
-
-                <p>
-                    Brak wyników dla:
-                    ${escapeHTML(query)}
-                </p>
-
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        results.map(player => {
-
-            const sourceUrl =
-                player.sourceUrl ||
-                `${"https://hodowlarp.pl/gracz/"}${encodeURIComponent(player.name)}`;
-
-
-            return `
-                <a
-                    href="${escapeHTML(sourceUrl)}"
-                    target="_blank"
-                    rel="noopener"
-                    style="text-decoration:none;"
-                >
-
-                    <div class="result-card">
-
-                        <div>
-
-                            <strong>
-                                ${escapeHTML(player.name)}
-                            </strong>
-
-                            <small>
-                                Poziom:
-                                ${formatLevel(player.level)}
-                                ·
-                                ${escapeHTML(getClanName(player))}
-                            </small>
-
-                        </div>
-
-                        <div>
-                            <strong>
-                                ${formatMoney(player.money)}
-                            </strong>
-
-                            <small>
-                                ${escapeHTML(getActivity(player))}
-                            </small>
-                        </div>
-
-                    </div>
-
-                </a>
-            `;
-
-        }).join("");
-}
-
-
-/* =========================================================
-   ERROR STATE
-   ========================================================= */
-
-function renderErrorState(message) {
-
-    const table =
-        $("#allPlayersTable");
-
-    if (!table) {
-        return;
-    }
-
-
-    table.innerHTML = `
-        <tr>
-
-            <td colspan="7">
-
-                <div class="empty-state">
-
-                    <div>!</div>
-
-                    <h3>
-                        Nie udało się pobrać danych
-                    </h3>
-
-                    <p>
-                        ${escapeHTML(message)}
-                    </p>
-
-                </div>
-
-            </td>
-
-        </tr>
-    `;
-}
-
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function setupNavigation() {
-
-    const navItems =
-        $all(".nav-item");
-
-    const pages =
-        $all(".page");
-
-
-    navItems.forEach(item => {
-
-        item.addEventListener("click", () => {
-
-            const pageName =
-                item.dataset.page;
-
-            if (!pageName) {
-                return;
-            }
-
-
-            navItems.forEach(nav =>
-                nav.classList.remove("active")
-            );
-
-            item.classList.add("active");
-
-
-            pages.forEach(page =>
-                page.classList.remove("active")
-            );
-
-
-            const page =
-                document.getElementById(pageName);
-
-            if (page) {
-                page.classList.add("active");
-            }
-
-
-            const title =
-                $(".page-title h1");
-
-            if (title) {
-
-                const titles = {
-
-                    dashboard: "Dashboard",
-                    clans: "Klany",
-                    players: "Gracze",
-                    rankings: "Rankingi",
-                    charts: "Wykresy",
-                    market: "Rynek",
-                    search: "Wyszukiwarka"
-
-                };
-
-                title.textContent =
-                    titles[pageName] ||
-                    "EXODO STATS";
-            }
-
-
-            const sidebar =
-                $("#sidebar");
-
-            if (sidebar) {
-                sidebar.classList.remove("open");
-            }
-
-        });
-
-    });
-
-
-    $all("[data-page-link]")
-        .forEach(button => {
-
-            button.addEventListener("click", () => {
-
-                const target =
-                    button.dataset.pageLink;
-
-                const nav =
-                    document.querySelector(
-                        `.nav-item[data-page="${target}"]`
-                    );
-
-                if (nav) {
-                    nav.click();
-                }
-
-            });
-
-        });
-
-}
-
-
-/* =========================================================
-   MOBILE MENU
-   ========================================================= */
-
-function setupMobileMenu() {
-
-    const button =
-        $("#mobileMenu");
-
-    const sidebar =
-        $("#sidebar");
-
-
-    if (!button || !sidebar) {
-        return;
-    }
-
-
-    button.addEventListener("click", () => {
-
-        sidebar.classList.toggle("open");
-
-    });
-
-}
-
-
-/* =========================================================
-   SEARCH EVENTS
-   ========================================================= */
-
-function setupSearch() {
-
-    const globalSearch =
-        $("#globalSearch");
-
-    const playerSearch =
-        $("#playerSearch");
-
-    const clanSearch =
-        $("#clanSearch");
-
-    const globalSearchPage =
-        $("#globalSearchPage");
-
-
-    if (globalSearch) {
-
-        globalSearch.addEventListener(
-            "input",
-            event => {
-
-                const value =
-                    event.target.value;
-
-                searchPlayers(value);
-
-                const page =
-                    document.getElementById("search");
-
-                if (value.trim() && page) {
-
-                    const nav =
-                        document.querySelector(
-                            '.nav-item[data-page="search"]'
-                        );
-
-                    if (nav) {
-                        nav.click();
-                    }
-
-                    if (globalSearchPage) {
-                        globalSearchPage.value =
-                            value;
-
-                        renderSearchResults();
-                    }
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (playerSearch) {
-
-        playerSearch.addEventListener(
-            "input",
-            event => {
-
-                searchPlayers(
-                    event.target.value
-                );
-
-            }
-        );
-
-    }
-
-
-    if (clanSearch) {
-
-        clanSearch.addEventListener(
-            "input",
-            event => {
-
-                renderFilteredClans(
-                    event.target.value
-                );
-
-            }
-        );
-
-    }
-
-
-    if (globalSearchPage) {
-
-        globalSearchPage.addEventListener(
-            "input",
-            () => {
-
-                renderSearchResults();
-
-            }
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   CLAN SEARCH
-   ========================================================= */
-
-function renderFilteredClans(query = "") {
-
-    const table =
-        $("#allClansTable");
-
-    if (!table) {
-        return;
-    }
-
-
-    const text =
-        String(query)
-            .trim()
-            .toLowerCase();
-
-
-    let clans =
-        buildClanData();
-
-
-    if (text) {
-
-        clans =
-            clans.filter(clan =>
-                clan.name
-                    .toLowerCase()
-                    .includes(text)
-            );
-
-    }
-
-
-    clans.sort(
-        (a, b) =>
-            b.money - a.money
-    );
-
-
-    table.innerHTML =
-        clans.map((clan, index) => {
+function renderDashboardClans() {
+    const table = $("clanTable");
+
+    if (!table) return;
+
+    const list = sortClans(clans).slice(0, 10);
+
+    table.innerHTML = list
+        .map((clan, index) => {
+            const online =
+                clan.players.filter(
+                    (p) => p.online
+                ).length;
 
             return `
                 <tr>
@@ -1551,6 +954,10 @@ function renderFilteredClans(query = "") {
 
                     <td>
                         <span class="clan-tag">
+                            [${escapeHTML(clan.tag || clan.name)}]
+                        </span>
+
+                        <span class="clan-name">
                             ${escapeHTML(clan.name)}
                         </span>
                     </td>
@@ -1564,15 +971,19 @@ function renderFilteredClans(query = "") {
                     </td>
 
                     <td>
-                        ${formatMoney(clan.money)}
+                        ${formatMoney(clan.cash)}
                     </td>
 
                     <td>
-                        ${formatMoney(clan.wealth)}
+                        ${formatMoney(clan.cash)}
                     </td>
 
                     <td>
-                        ${clan.activity}
+                        ${
+                            online
+                                ? `${online} online`
+                                : "Offline"
+                        }
                     </td>
 
                     <td class="change-none">
@@ -1581,325 +992,426 @@ function renderFilteredClans(query = "") {
 
                 </tr>
             `;
-
-        }).join("");
+        })
+        .join("");
 }
-
 
 /* =========================================================
-   SORT EVENTS
+   MARKET
    ========================================================= */
 
-function setupSorts() {
+function renderMarket() {
+    const table = $("marketTable");
 
-    const playerSort =
-        $("#playerSort");
+    if (!table) return;
 
-    const clanSort =
-        $("#clanSort");
+    const list = sortClans(clans);
 
+    table.innerHTML = list
+        .map((clan) => {
+            const online =
+                clan.players.some(
+                    (p) => p.online
+                );
 
-    if (playerSort) {
+            return `
+                <tr>
 
-        playerSort.addEventListener(
-            "change",
-            () => {
+                    <td>
+                        <span class="clan-tag">
+                            [${escapeHTML(clan.tag || clan.name)}]
+                        </span>
 
-                renderPlayersTable();
+                        <span class="clan-name">
+                            ${escapeHTML(clan.name)}
+                        </span>
+                    </td>
 
-            }
-        );
+                    <td>
+                        ${formatMoney(clan.cash)}
+                    </td>
 
-    }
+                    <td class="change-none">
+                        —
+                    </td>
 
+                    <td class="change-none">
+                        —
+                    </td>
 
-    if (clanSort) {
-
-        clanSort.addEventListener(
-            "change",
-            () => {
-
-                const table =
-                    $("#allClansTable");
-
-                if (!table) {
-                    return;
-                }
-
-                let clans =
-                    buildClanData();
-
-
-                const sort =
-                    clanSort.value;
-
-
-                if (sort === "members") {
-
-                    clans.sort(
-                        (a, b) =>
-                            b.members -
-                            a.members
-                    );
-
-                } else if (sort === "time") {
-
-                    clans.sort(
-                        (a, b) =>
-                            b.activity -
-                            a.activity
-                    );
-
-                } else {
-
-                    clans.sort(
-                        (a, b) =>
-                            b.money -
-                            a.money
-                    );
-
-                }
-
-
-                table.innerHTML =
-                    clans.map(
-                        (clan, index) => {
-
-                            return `
-                                <tr>
-
-                                    <td class="rank-number">
-                                        ${index + 1}
-                                    </td>
-
-                                    <td>
-                                        <span class="clan-tag">
-                                            ${escapeHTML(clan.name)}
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        ${escapeHTML(clan.leader)}
-                                    </td>
-
-                                    <td>
-                                        ${clan.members}
-                                    </td>
-
-                                    <td>
-                                        ${formatMoney(clan.money)}
-                                    </td>
-
-                                    <td>
-                                        ${formatMoney(clan.wealth)}
-                                    </td>
-
-                                    <td>
-                                        ${clan.activity}
-                                    </td>
-
-                                    <td>
-                                        —
-                                    </td>
-
-                                </tr>
-                            `;
-
+                    <td>
+                        ${
+                            online
+                                ? `
+                                    <span class="positive">
+                                        ● AKTYWNY
+                                    </span>
+                                `
+                                : `
+                                    <span class="change-none">
+                                        ● OFFLINE
+                                    </span>
+                                `
                         }
-                    ).join("");
+                    </td>
 
-            }
-        );
-
-    }
-
+                </tr>
+            `;
+        })
+        .join("");
 }
 
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+function performSearch(value) {
+    const query =
+        String(value || "")
+            .trim()
+            .toLowerCase();
+
+    const container = $("searchResults");
+
+    if (!container) return;
+
+    if (!query) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div>⌕</div>
+                <h3>Wpisz nazwę powyżej</h3>
+                <p>
+                    Wyszukiwarka znajdzie graczy oraz klany.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    const foundPlayers =
+        players.filter((player) =>
+            player.name
+                .toLowerCase()
+                .includes(query)
+        );
+
+    const foundClans =
+        clans.filter((clan) =>
+            clan.name
+                .toLowerCase()
+                .includes(query) ||
+            clan.tag
+                .toLowerCase()
+                .includes(query)
+        );
+
+    if (
+        !foundPlayers.length &&
+        !foundClans.length
+    ) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div>⌕</div>
+                <h3>Nie znaleziono</h3>
+                <p>
+                    Brak gracza lub klanu o takiej nazwie.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    let html = "";
+
+    foundPlayers.forEach((player) => {
+        html += `
+            <div class="result-card">
+
+                <div>
+                    <strong>
+                        ♙ ${escapeHTML(player.name)}
+                    </strong>
+
+                    <small>
+                        Poziom ${getLevel(player)}
+                        · ${formatMoney(player.money)}
+                        · ${escapeHTML(player.activity)}
+                    </small>
+                </div>
+
+                <span>
+                    ${getStatusHTML(player)}
+                </span>
+
+            </div>
+        `;
+    });
+
+    foundClans.forEach((clan) => {
+        html += `
+            <div class="result-card">
+
+                <div>
+                    <strong>
+                        ♛
+                        [${escapeHTML(clan.tag || clan.name)}]
+                        ${escapeHTML(clan.name)}
+                    </strong>
+
+                    <small>
+                        ${clan.members} członków
+                        · ${formatMoney(clan.cash)}
+                        · Lider: ${escapeHTML(clan.leader)}
+                    </small>
+                </div>
+
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
 
 /* =========================================================
    CHART.JS
    ========================================================= */
 
 async function loadChartJS() {
-
     if (window.Chart) {
-        chartsLoaded = true;
-        return true;
+        return;
     }
 
-
-    return new Promise(resolve => {
-
+    await new Promise((resolve, reject) => {
         const script =
             document.createElement("script");
 
         script.src =
-            "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js";
+            "https://cdn.jsdelivr.net/npm/chart.js";
 
-        script.onload = () => {
-
-            chartsLoaded = true;
-
-            console.log(
-                "EXODO: Chart.js załadowany"
-            );
-
-            resolve(true);
-
-        };
-
-        script.onerror = () => {
-
-            console.warn(
-                "EXODO: Chart.js nie został załadowany."
-            );
-
-            resolve(false);
-
-        };
+        script.onload = resolve;
+        script.onerror = reject;
 
         document.head.appendChild(script);
-
     });
-
 }
-
 
 /* =========================================================
    CHARTS
    ========================================================= */
 
-async function updateCharts() {
-
-    const hasCanvas =
-        $("#activityChart") ||
-        $("#clanChart") ||
-        $("#activityChart2") ||
-        $("#wealthChart");
-
-
-    if (!hasCanvas) {
-        return;
-    }
-
-
-    const loaded =
+async function renderCharts() {
+    try {
         await loadChartJS();
+    } catch (error) {
+        console.warn(
+            "Nie udało się załadować Chart.js.",
+            error
+        );
 
-
-    if (!loaded) {
         return;
     }
 
+    const purple =
+        "#9b5cff";
 
-    createCharts();
+    /*
+       Aktywność
+       Ponieważ API nie udostępnia historii 7 dni,
+       pokazujemy aktualną liczbę online jako punkt
+       bazowy zamiast wymyślać dane.
+    */
 
-}
+    const online =
+        players.filter(
+            (player) => player.online
+        ).length;
 
-
-function destroyChart(chart) {
-
-    if (chart) {
-        try {
-            chart.destroy();
-        } catch (error) {
-            console.warn(error);
+    createChart(
+        "activityChart",
+        "line",
+        {
+            labels: [
+                "—6h",
+                "—5h",
+                "—4h",
+                "—3h",
+                "—2h",
+                "—1h",
+                "Teraz"
+            ],
+            datasets: [
+                {
+                    label: "Online",
+                    data: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        online
+                    ],
+                    borderColor: purple,
+                    backgroundColor:
+                        "rgba(155,92,255,0.12)",
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
         }
-    }
+    );
 
+    createChart(
+        "activityChart2",
+        "line",
+        {
+            labels: [
+                "—6h",
+                "—5h",
+                "—4h",
+                "—3h",
+                "—2h",
+                "—1h",
+                "Teraz"
+            ],
+            datasets: [
+                {
+                    label: "Online",
+                    data: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        online
+                    ],
+                    borderColor: purple,
+                    backgroundColor:
+                        "rgba(155,92,255,0.12)",
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        }
+    );
+
+    const topClans =
+        [...clans]
+            .sort(
+                (a, b) =>
+                    b.cash - a.cash
+            )
+            .slice(0, 10);
+
+    const clanLabels =
+        topClans.map(
+            (clan) =>
+                clan.tag ||
+                clan.name
+        );
+
+    const clanMoney =
+        topClans.map(
+            (clan) => clan.cash
+        );
+
+    createChart(
+        "clanChart",
+        "doughnut",
+        {
+            labels: clanLabels,
+            datasets: [
+                {
+                    data:
+                        clanMoney.length
+                            ? clanMoney
+                            : [1],
+                    backgroundColor:
+                        generatePurpleColors(
+                            Math.max(
+                                clanMoney.length,
+                                1
+                            )
+                        ),
+                    borderWidth: 0
+                }
+            ]
+        },
+        {
+            plugins: {
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        color: "#aaa5b5",
+                        boxWidth: 10
+                    }
+                }
+            }
+        }
+    );
+
+    createChart(
+        "wealthChart",
+        "bar",
+        {
+            labels: clanLabels,
+            datasets: [
+                {
+                    label: "Gotówka",
+                    data: clanMoney,
+                    backgroundColor:
+                        "rgba(155,92,255,0.65)",
+                    borderRadius: 7
+                }
+            ]
+        }
+    );
 }
 
+function createChart(
+    canvasId,
+    type,
+    data,
+    extraOptions = {}
+) {
+    const canvas = $(canvasId);
 
-function createCharts() {
+    if (!canvas) {
+        return;
+    }
 
-    const labels =
-        players
-            .slice(0, 7)
-            .map(player => player.name);
+    if (charts[canvasId]) {
+        charts[canvasId].destroy();
+    }
 
+    charts[canvasId] =
+        new Chart(canvas, {
+            type,
+            data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
 
-    const levels =
-        players
-            .slice(0, 7)
-            .map(player =>
-                Number(player.level) || 0
-            );
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: "#aaa5b5"
+                        }
+                    }
+                },
 
-
-    const money =
-        players
-            .slice(0, 7)
-            .map(player =>
-                Number(player.money) || 0
-            );
-
-
-    const activityCanvas =
-        $("#activityChart");
-
-    if (activityCanvas) {
-
-        destroyChart(activityChart);
-
-        activityChart =
-            new Chart(
-                activityCanvas,
-                {
-
-                    type: "line",
-
-                    data: {
-
-                        labels:
-                            labels.length
-                                ? labels
-                                : [
-                                    "Brak danych"
-                                ],
-
-                        datasets: [
-
-                            {
-                                label:
-                                    "Poziom",
-
-                                data:
-                                    levels.length
-                                        ? levels
-                                        : [0],
-
-                                borderWidth: 2,
-
-                                tension: 0.35,
-
-                                fill: true
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        plugins: {
-
-                            legend: {
-                                display: false
-                            }
-
-                        },
-
-                        scales: {
-
+                scales:
+                    type === "doughnut"
+                        ? {}
+                        : {
                             x: {
                                 ticks: {
                                     color: "#6f6a78"
                                 },
-
                                 grid: {
                                     color:
                                         "rgba(255,255,255,0.04)"
@@ -1908,339 +1420,406 @@ function createCharts() {
 
                             y: {
                                 beginAtZero: true,
-
                                 ticks: {
                                     color: "#6f6a78"
                                 },
-
                                 grid: {
                                     color:
                                         "rgba(255,255,255,0.04)"
                                 }
                             }
-
-                        }
-
-                    }
-
-                }
-            );
-
-    }
-
-
-    const clanCanvas =
-        $("#clanChart");
-
-    if (clanCanvas) {
-
-        const clanData =
-            buildClanData()
-                .slice(0, 7);
-
-
-        destroyChart(clanChart);
-
-        clanChart =
-            new Chart(
-                clanCanvas,
-                {
-
-                    type: "doughnut",
-
-                    data: {
-
-                        labels:
-                            clanData.length
-                                ? clanData.map(
-                                    clan =>
-                                        clan.name
-                                )
-                                : ["Brak danych"],
-
-                        datasets: [
-
-                            {
-                                data:
-                                    clanData.length
-                                        ? clanData.map(
-                                            clan =>
-                                                clan.money || 1
-                                        )
-                                        : [1],
-
-                                borderWidth: 0
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        plugins: {
-
-                            legend: {
-
-                                position: "bottom",
-
-                                labels: {
-                                    color: "#aaa5b5"
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                }
-            );
-
-    }
-
-
-    const activityCanvas2 =
-        $("#activityChart2");
-
-    if (activityCanvas2) {
-
-        destroyChart(activityChart2);
-
-        activityChart2 =
-            new Chart(
-                activityCanvas2,
-                {
-
-                    type: "bar",
-
-                    data: {
-
-                        labels:
-                            labels.length
-                                ? labels
-                                : ["Brak danych"],
-
-                        datasets: [
-
-                            {
-                                label:
-                                    "Poziom",
-
-                                data:
-                                    levels.length
-                                        ? levels
-                                        : [0],
-
-                                borderWidth: 0
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        plugins: {
-
-                            legend: {
-                                display: false
-                            }
-
                         },
 
-                        scales: {
+                ...extraOptions
+            }
+        });
+}
 
-                            x: {
-                                ticks: {
-                                    color: "#6f6a78"
-                                },
+function generatePurpleColors(count) {
+    const colors = [];
 
-                                grid: {
-                                    display: false
-                                }
-                            },
+    for (let i = 0; i < count; i++) {
+        const light =
+            40 + (i * 8);
 
-                            y: {
-                                beginAtZero: true,
-
-                                ticks: {
-                                    color: "#6f6a78"
-                                },
-
-                                grid: {
-                                    color:
-                                        "rgba(255,255,255,0.04)"
-                                }
-                            }
-
-                        }
-
-                    }
-
-                }
-            );
-
+        colors.push(
+            `hsl(267, ${70 + (i % 3) * 5}%, ${light}%)`
+        );
     }
 
+    return colors;
+}
 
-    const wealthCanvas =
-        $("#wealthChart");
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
 
-    if (wealthCanvas) {
+function setupNavigation() {
+    const navItems =
+        document.querySelectorAll(
+            ".nav-item"
+        );
 
-        const rich =
-            [...players]
-                .sort(
-                    (a, b) =>
-                        b.money - a.money
+    const pages =
+        document.querySelectorAll(
+            ".page"
+        );
+
+    const title =
+        document.querySelector(
+            ".page-title h1"
+        );
+
+    const subtitles = {
+        dashboard:
+            "Centrum statystyk Hodowla RP",
+        clans:
+            "Ranking klanów Hodowla RP",
+        players:
+            "Statystyki graczy",
+        rankings:
+            "Rankingi graczy i klanów",
+        charts:
+            "Wykresy statystyk serwera",
+        market:
+            "Zmiany wartości klanów",
+        search:
+            "Znajdź gracza lub klan"
+    };
+
+    navItems.forEach((item) => {
+        item.addEventListener(
+            "click",
+            () => {
+                const page =
+                    item.dataset.page;
+
+                navItems.forEach((nav) =>
+                    nav.classList.remove(
+                        "active"
+                    )
+                );
+
+                item.classList.add(
+                    "active"
+                );
+
+                pages.forEach((section) =>
+                    section.classList.remove(
+                        "active"
+                    )
+                );
+
+                const target =
+                    $(page);
+
+                if (target) {
+                    target.classList.add(
+                        "active"
+                    );
+                }
+
+                if (title) {
+                    title.textContent =
+                        item.textContent
+                            .trim();
+                }
+
+                const subtitle =
+                    document.querySelector(
+                        ".page-title p"
+                    );
+
+                if (subtitle) {
+                    subtitle.textContent =
+                        subtitles[page] ||
+                        "";
+                }
+
+                /*
+                   Zamknij sidebar na telefonie.
+                */
+
+                $("sidebar")
+                    ?.classList.remove(
+                        "open"
+                    );
+            }
+        );
+    });
+
+    /*
+       Przyciski data-page-link
+    */
+
+    document
+        .querySelectorAll(
+            "[data-page-link]"
+        )
+        .forEach((button) => {
+            button.addEventListener(
+                "click",
+                () => {
+                    const page =
+                        button.dataset
+                            .pageLink;
+
+                    const nav =
+                        document.querySelector(
+                            `.nav-item[data-page="${page}"]`
+                        );
+
+                    nav?.click();
+                }
+            );
+        });
+}
+
+/* =========================================================
+   MOBILE MENU
+   ========================================================= */
+
+function setupMobileMenu() {
+    $("mobileMenu")?.addEventListener(
+        "click",
+        () => {
+            $("sidebar")
+                ?.classList.toggle(
+                    "open"
+                );
+        }
+    );
+}
+
+/* =========================================================
+   SEARCH EVENTS
+   ========================================================= */
+
+function setupSearch() {
+    $("playerSearch")
+        ?.addEventListener(
+            "input",
+            renderPlayersTable
+        );
+
+    $("clanSearch")
+        ?.addEventListener(
+            "input",
+            () =>
+                renderClansTable()
+        );
+
+    $("globalSearchPage")
+        ?.addEventListener(
+            "input",
+            (event) =>
+                performSearch(
+                    event.target.value
                 )
-                .slice(0, 10);
+        );
 
+    $("globalSearch")
+        ?.addEventListener(
+            "keydown",
+            (event) => {
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+                    const value =
+                        event.target.value;
 
-        destroyChart(wealthChart);
-
-        wealthChart =
-            new Chart(
-                wealthCanvas,
-                {
-
-                    type: "bar",
-
-                    data: {
-
-                        labels:
-                            rich.length
-                                ? rich.map(
-                                    player =>
-                                        player.name
-                                )
-                                : ["Brak danych"],
-
-                        datasets: [
-
-                            {
-                                label:
-                                    "Gotówka",
-
-                                data:
-                                    rich.length
-                                        ? rich.map(
-                                            player =>
-                                                player.money
-                                        )
-                                        : [0],
-
-                                borderWidth: 0
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false,
-
-                        plugins: {
-
-                            legend: {
-                                display: false
-                            }
-
-                        },
-
-                        scales: {
-
-                            x: {
-                                ticks: {
-                                    color: "#6f6a78"
-                                },
-
-                                grid: {
-                                    display: false
-                                }
-                            },
-
-                            y: {
-
-                                beginAtZero: true,
-
-                                ticks: {
-                                    color: "#6f6a78"
-                                },
-
-                                grid: {
-                                    color:
-                                        "rgba(255,255,255,0.04)"
-                                }
-
-                            }
-
-                        }
-
+                    if (!value.trim()) {
+                        return;
                     }
 
+                    const searchNav =
+                        document.querySelector(
+                            '.nav-item[data-page="search"]'
+                        );
+
+                    searchNav?.click();
+
+                    const input =
+                        $("globalSearchPage");
+
+                    if (input) {
+                        input.value =
+                            value;
+
+                        performSearch(
+                            value
+                        );
+                    }
                 }
-            );
-
-    }
-
+            }
+        );
 }
 
+/* =========================================================
+   SORT EVENTS
+   ========================================================= */
+
+function setupSorts() {
+    $("playerSort")
+        ?.addEventListener(
+            "change",
+            (event) => {
+                currentPlayerSort =
+                    event.target.value;
+
+                renderPlayersTable();
+            }
+        );
+
+    $("clanSort")
+        ?.addEventListener(
+            "change",
+            (event) => {
+                currentClanSort =
+                    event.target.value;
+
+                renderClansTable();
+                renderDashboardClans();
+            }
+        );
+}
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+let toastTimeout;
+
+function showToast(message) {
+    const toast = $("toast");
+
+    if (!toast) return;
+
+    toast.textContent =
+        `✓ ${message}`;
+
+    toast.classList.add(
+        "show"
+    );
+
+    clearTimeout(
+        toastTimeout
+    );
+
+    toastTimeout =
+        setTimeout(() => {
+            toast.classList.remove(
+                "show"
+            );
+        }, 2500);
+}
 
 /* =========================================================
    REFRESH
    ========================================================= */
 
-function setupRefresh() {
-
+async function refreshData(
+    showMessage = true
+) {
     const button =
-        $("#refreshButton");
+        $("refreshButton");
 
-    if (!button) {
-        return;
+    if (button) {
+        button.disabled = true;
+        button.innerHTML =
+            "↻ Ładowanie...";
     }
 
+    try {
+        await loadPlayers();
 
-    button.addEventListener(
-        "click",
-        async () => {
+        updateDashboardStats();
 
-            button.disabled = true;
+        renderPlayersTable();
+        renderRichPlayers();
 
-            button.textContent =
-                "↻ Ładowanie...";
+        renderClansTable();
+        renderDashboardClans();
 
+        renderLevelRanking(
+            "levelRanking"
+        );
 
-            await loadPlayers();
+        renderLevelRanking(
+            "levelRanking2"
+        );
 
+        renderMoneyRanking();
 
-            button.disabled = false;
+        renderMarket();
 
-            button.textContent =
-                "↻ Odśwież";
+        await renderCharts();
 
-
+        if (showMessage) {
             showToast(
-                "✓ Statystyki zostały odświeżone"
+                "Statystyki zostały odświeżone"
             );
-
         }
-    );
 
+        console.log(
+            "EXODO API — załadowano:",
+            players
+        );
+
+    } catch (error) {
+        console.error(
+            "EXODO API ERROR:",
+            error
+        );
+
+        showToast(
+            "Nie udało się pobrać danych z API"
+        );
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML =
+                "↻ Odśwież";
+        }
+    }
 }
 
+/* =========================================================
+   REFRESH BUTTON
+   ========================================================= */
+
+function setupRefresh() {
+    $("refreshButton")
+        ?.addEventListener(
+            "click",
+            () => refreshData(true)
+        );
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+
+async function init() {
+    console.log(
+        "%cEXODO STATS",
+        "color:#9b5cff;font-size:20px;font-weight:800;"
+    );
+
+    console.log(
+        "API:",
+        API_BASE
+    );
+
+    setupNavigation();
+    setupMobileMenu();
+    setupSearch();
+    setupSorts();
+    setupRefresh();
+
+    await refreshData(false);
+}
 
 /* =========================================================
    START
@@ -2248,23 +1827,5 @@ function setupRefresh() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
-
-        console.log(
-            "EXODO STATS — start"
-        );
-
-        setupNavigation();
-
-        setupMobileMenu();
-
-        setupSearch();
-
-        setupSorts();
-
-        setupRefresh();
-
-        loadPlayers();
-
-    }
+    init
 );
