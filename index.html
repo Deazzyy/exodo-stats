@@ -11,104 +11,196 @@
 
 <body>
 
-<!-- SIDEBAR -->
+<!-- =====================================================
+     SIDEBAR
+     ===================================================== -->
+
 <aside class="sidebar" id="sidebar">
 
     <div class="logo">
-        <img src="logo.png" alt="EXODO" class="logo-image">
+
+        <img
+            src="logo.png"
+            alt="EXODO"
+            class="logo-image"
+        >
 
         <div class="logo-text">
             EXODO <span>STATS</span>
         </div>
+
     </div>
+
 
     <nav class="nav">
 
-        <div class="nav-label">Panel</div>
+        <div class="nav-label">
+            Panel
+        </div>
 
-        <div class="nav-item active" data-page="dashboard">
+
+        <div
+            class="nav-item active"
+            data-page="dashboard"
+        >
             <span class="nav-icon">⌂</span>
             Dashboard
         </div>
 
-        <div class="nav-item" data-page="clans">
+
+        <div
+            class="nav-item"
+            data-page="clans"
+        >
             <span class="nav-icon">♛</span>
             Klany
         </div>
 
-        <div class="nav-item" data-page="players">
+
+        <div
+            class="nav-item"
+            data-page="players"
+        >
             <span class="nav-icon">♙</span>
             Gracze
         </div>
 
-        <div class="nav-item" data-page="rankings">
+
+        <div
+            class="nav-item"
+            data-page="rankings"
+        >
             <span class="nav-icon">★</span>
             Rankingi
         </div>
 
-        <div class="nav-label">Statystyki</div>
 
-        <div class="nav-item" data-page="charts">
+        <div class="nav-label">
+            Statystyki
+        </div>
+
+
+        <div
+            class="nav-item"
+            data-page="charts"
+        >
             <span class="nav-icon">⌁</span>
             Wykresy
         </div>
 
-        <div class="nav-item" data-page="market">
+
+        <div
+            class="nav-item"
+            data-page="market"
+        >
             <span class="nav-icon">◆</span>
             Rynek
         </div>
 
-        <div class="nav-item" data-page="search">
+
+        <div
+            class="nav-item"
+            data-page="search"
+        >
             <span class="nav-icon">⌕</span>
             Wyszukiwarka
         </div>
 
     </nav>
 
+
     <div class="sidebar-bottom">
+
         <div class="server-status">
+
             <span class="status-dot"></span>
-            Hodowla RP
-            <span style="margin-left:auto;color:#4ade80;">ONLINE</span>
+
+            <span>
+                Hodowla RP
+            </span>
+
+            <span
+                style="
+                    margin-left:auto;
+                    color:#4ade80;
+                "
+            >
+                ONLINE
+            </span>
+
         </div>
+
     </div>
 
 </aside>
 
 
-<!-- MAIN -->
+
+<!-- =====================================================
+     MAIN
+     ===================================================== -->
+
 <main class="main">
 
-    <!-- TOPBAR -->
+
+    <!-- =================================================
+         TOPBAR
+         ================================================= -->
+
     <header class="topbar">
 
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div
+            style="
+                display:flex;
+                align-items:center;
+                gap:12px;
+            "
+        >
 
-            <button class="mobile-menu" id="mobileMenu">
+            <button
+                class="mobile-menu"
+                id="mobileMenu"
+                type="button"
+            >
                 ☰
             </button>
 
+
             <div class="page-title">
-                <h1>Dashboard</h1>
+
+                <h1>
+                    Dashboard
+                </h1>
 
                 <p>
                     Centrum statystyk Hodowla RP
                 </p>
+
             </div>
 
         </div>
 
+
         <div class="top-actions">
 
+
             <div class="search">
+
                 <input
                     id="globalSearch"
                     type="text"
                     placeholder="Szukaj gracza lub klanu..."
+                    autocomplete="off"
                 >
+
             </div>
 
-            <button class="btn btn-primary" id="refreshButton">
+
+            <button
+                class="btn btn-primary"
+                id="refreshButton"
+                type="button"
+            >
                 ↻ Odśwież
             </button>
 
@@ -117,42 +209,72 @@
     </header>
 
 
+
     <!-- =====================================================
          DASHBOARD
          ===================================================== -->
 
-    <section class="page active" id="dashboard">
+    <section
+        class="page active"
+        id="dashboard"
+    >
+
+
+        <!-- STATS -->
 
         <div class="stats-grid">
+
 
             <div class="stat-card">
 
                 <div class="stat-top">
-                    <span>GRACZE</span>
-                    <div class="stat-icon">♙</div>
+
+                    <span>
+                        GRACZE
+                    </span>
+
+                    <div class="stat-icon">
+                        ♙
+                    </div>
+
                 </div>
+
 
                 <div class="stat-value">
-                    1,284
+                    0
                 </div>
 
+
                 <div class="stat-change">
-                    ↑ 8.4% w tym tygodniu
+                    Dane z EXODO API
                 </div>
 
             </div>
 
 
+
             <div class="stat-card">
 
                 <div class="stat-top">
-                    <span>ONLINE TERAZ</span>
-                    <div class="stat-icon">●</div>
+
+                    <span>
+                        ONLINE TERAZ
+                    </span>
+
+                    <div class="stat-icon">
+                        ●
+                    </div>
+
                 </div>
 
-                <div class="stat-value" id="onlinePlayers">
-                    132
+
+                <div
+                    class="stat-value"
+                    id="onlinePlayers"
+                >
+                    0
                 </div>
+
 
                 <div class="stat-change">
                     Serwer działa
@@ -161,37 +283,57 @@
             </div>
 
 
+
             <div class="stat-card">
 
                 <div class="stat-top">
-                    <span>KLANY</span>
-                    <div class="stat-icon">♛</div>
+
+                    <span>
+                        KLANY
+                    </span>
+
+                    <div class="stat-icon">
+                        ♛
+                    </div>
+
                 </div>
+
 
                 <div class="stat-value">
-                    86
+                    0
                 </div>
 
+
                 <div class="stat-change">
-                    ↑ 4 nowe klany
+                    Dane z EXODO API
                 </div>
 
             </div>
 
 
+
             <div class="stat-card">
 
                 <div class="stat-top">
-                    <span>MAJĄTEK</span>
-                    <div class="stat-icon">$</div>
+
+                    <span>
+                        MAJĄTEK
+                    </span>
+
+                    <div class="stat-icon">
+                        $
+                    </div>
+
                 </div>
+
 
                 <div class="stat-value">
-                    84.2M$
+                    0$
                 </div>
 
+
                 <div class="stat-change">
-                    ↑ 12.7% w tym tygodniu
+                    Łączna gotówka graczy
                 </div>
 
             </div>
@@ -199,14 +341,20 @@
         </div>
 
 
-        <!-- CHARTS -->
+
+        <!-- =================================================
+             CHARTS
+             ================================================= -->
+
         <div class="content-grid">
+
 
             <div class="panel">
 
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Aktywność serwera
                         </div>
@@ -214,7 +362,9 @@
                         <div class="panel-subtitle">
                             Liczba aktywnych graczy
                         </div>
+
                     </div>
+
 
                     <span class="clan-tag">
                         OSTATNIE 7 DNI
@@ -222,13 +372,21 @@
 
                 </div>
 
+
                 <div class="panel-body">
+
                     <div class="chart-container">
-                        <canvas id="activityChart"></canvas>
+
+                        <canvas
+                            id="activityChart"
+                        ></canvas>
+
                     </div>
+
                 </div>
 
             </div>
+
 
 
             <div class="panel">
@@ -236,6 +394,7 @@
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Top klany
                         </div>
@@ -243,14 +402,20 @@
                         <div class="panel-subtitle">
                             Majątek klanów
                         </div>
+
                     </div>
 
                 </div>
 
+
                 <div class="panel-body">
 
                     <div class="chart-container small">
-                        <canvas id="clanChart"></canvas>
+
+                        <canvas
+                            id="clanChart"
+                        ></canvas>
+
                     </div>
 
                 </div>
@@ -260,12 +425,17 @@
         </div>
 
 
-        <!-- CLANS -->
+
+        <!-- =================================================
+             CLAN RANKING
+             ================================================= -->
+
         <div class="panel section-space">
 
             <div class="panel-header">
 
                 <div>
+
                     <div class="panel-title">
                         Ranking klanów
                     </div>
@@ -273,10 +443,13 @@
                     <div class="panel-subtitle">
                         Najlepsze klany na serwerze
                     </div>
+
                 </div>
+
 
                 <button
                     class="btn"
+                    type="button"
                     data-page-link="clans"
                 >
                     Zobacz wszystkie →
@@ -290,7 +463,9 @@
                 <table>
 
                     <thead>
+
                         <tr>
+
                             <th>#</th>
                             <th>Klan</th>
                             <th>Lider</th>
@@ -299,10 +474,15 @@
                             <th>Majątek</th>
                             <th>Aktywność</th>
                             <th>Zmiana</th>
+
                         </tr>
+
                     </thead>
 
-                    <tbody id="clanTable"></tbody>
+
+                    <tbody
+                        id="clanTable"
+                    ></tbody>
 
                 </table>
 
@@ -311,14 +491,20 @@
         </div>
 
 
-        <!-- PLAYERS -->
+
+        <!-- =================================================
+             PLAYERS
+             ================================================= -->
+
         <div class="two-columns section-space">
+
 
             <div class="panel">
 
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Najbogatsi gracze
                         </div>
@@ -326,26 +512,35 @@
                         <div class="panel-subtitle">
                             TOP 10
                         </div>
+
                     </div>
 
                 </div>
+
 
                 <div class="table-wrap">
 
                     <table>
 
                         <thead>
+
                             <tr>
+
                                 <th>#</th>
                                 <th>Gracz</th>
                                 <th>Poziom</th>
                                 <th>Gotówka</th>
                                 <th>Klan</th>
                                 <th>Aktywność</th>
+
                             </tr>
+
                         </thead>
 
-                        <tbody id="richPlayersTable"></tbody>
+
+                        <tbody
+                            id="richPlayersTable"
+                        ></tbody>
 
                     </table>
 
@@ -354,11 +549,13 @@
             </div>
 
 
+
             <div class="panel">
 
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Poziomy graczy
                         </div>
@@ -366,13 +563,17 @@
                         <div class="panel-subtitle">
                             Najwyższe poziomy
                         </div>
+
                     </div>
 
                 </div>
 
+
                 <div class="panel-body">
 
-                    <div id="levelRanking"></div>
+                    <div
+                        id="levelRanking"
+                    ></div>
 
                 </div>
 
@@ -383,17 +584,22 @@
     </section>
 
 
+
     <!-- =====================================================
          CLANS
          ===================================================== -->
 
-    <section class="page" id="clans">
+    <section
+        class="page"
+        id="clans"
+    >
 
         <div class="panel">
 
             <div class="panel-header">
 
                 <div>
+
                     <div class="panel-title">
                         Wszystkie klany
                     </div>
@@ -401,6 +607,7 @@
                     <div class="panel-subtitle">
                         Ranking klanów Hodowla RP
                     </div>
+
                 </div>
 
             </div>
@@ -410,17 +617,22 @@
 
                 <div class="toolbar">
 
+
                     <div class="toolbar-left">
 
                         <div class="search">
+
                             <input
                                 id="clanSearch"
                                 type="text"
                                 placeholder="Szukaj klanu..."
+                                autocomplete="off"
                             >
+
                         </div>
 
                     </div>
+
 
                     <div class="toolbar-right">
 
@@ -452,7 +664,9 @@
                 <table>
 
                     <thead>
+
                         <tr>
+
                             <th>#</th>
                             <th>Klan</th>
                             <th>Lider</th>
@@ -461,10 +675,15 @@
                             <th>Majątek</th>
                             <th>Aktywność</th>
                             <th>Zmiana</th>
+
                         </tr>
+
                     </thead>
 
-                    <tbody id="allClansTable"></tbody>
+
+                    <tbody
+                        id="allClansTable"
+                    ></tbody>
 
                 </table>
 
@@ -475,17 +694,22 @@
     </section>
 
 
+
     <!-- =====================================================
          PLAYERS
          ===================================================== -->
 
-    <section class="page" id="players">
+    <section
+        class="page"
+        id="players"
+    >
 
         <div class="panel">
 
             <div class="panel-header">
 
                 <div>
+
                     <div class="panel-title">
                         Wszyscy gracze
                     </div>
@@ -493,6 +717,7 @@
                     <div class="panel-subtitle">
                         Statystyki graczy
                     </div>
+
                 </div>
 
             </div>
@@ -502,17 +727,22 @@
 
                 <div class="toolbar">
 
+
                     <div class="toolbar-left">
 
                         <div class="search">
+
                             <input
                                 id="playerSearch"
                                 type="text"
                                 placeholder="Szukaj gracza..."
+                                autocomplete="off"
                             >
+
                         </div>
 
                     </div>
+
 
                     <div class="toolbar-right">
 
@@ -546,6 +776,7 @@
                     <thead>
 
                         <tr>
+
                             <th>#</th>
                             <th>Gracz</th>
                             <th>Poziom</th>
@@ -553,11 +784,15 @@
                             <th>Klan</th>
                             <th>Aktywność</th>
                             <th>Status</th>
+
                         </tr>
 
                     </thead>
 
-                    <tbody id="allPlayersTable"></tbody>
+
+                    <tbody
+                        id="allPlayersTable"
+                    ></tbody>
 
                 </table>
 
@@ -568,18 +803,25 @@
     </section>
 
 
+
     <!-- =====================================================
          RANKINGS
          ===================================================== -->
 
-    <section class="page" id="rankings">
+    <section
+        class="page"
+        id="rankings"
+    >
 
         <div class="two-columns">
+
 
             <div class="panel">
 
                 <div class="panel-header">
+
                     <div>
+
                         <div class="panel-title">
                             Ranking poziomów
                         </div>
@@ -587,20 +829,30 @@
                         <div class="panel-subtitle">
                             TOP gracze
                         </div>
+
                     </div>
+
                 </div>
 
+
                 <div class="panel-body">
-                    <div id="levelRanking2"></div>
+
+                    <div
+                        id="levelRanking2"
+                    ></div>
+
                 </div>
 
             </div>
 
 
+
             <div class="panel">
 
                 <div class="panel-header">
+
                     <div>
+
                         <div class="panel-title">
                             Ranking majątku
                         </div>
@@ -608,11 +860,18 @@
                         <div class="panel-subtitle">
                             Najbogatsi gracze
                         </div>
+
                     </div>
+
                 </div>
 
+
                 <div class="panel-body">
-                    <div id="moneyRanking"></div>
+
+                    <div
+                        id="moneyRanking"
+                    ></div>
+
                 </div>
 
             </div>
@@ -622,19 +881,25 @@
     </section>
 
 
+
     <!-- =====================================================
          CHARTS
          ===================================================== -->
 
-    <section class="page" id="charts">
+    <section
+        class="page"
+        id="charts"
+    >
 
         <div class="two-columns">
+
 
             <div class="panel">
 
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Aktywność graczy
                         </div>
@@ -642,14 +907,20 @@
                         <div class="panel-subtitle">
                             Ostatnie 7 dni
                         </div>
+
                     </div>
 
                 </div>
 
+
                 <div class="panel-body">
 
                     <div class="chart-container">
-                        <canvas id="activityChart2"></canvas>
+
+                        <canvas
+                            id="activityChart2"
+                        ></canvas>
+
                     </div>
 
                 </div>
@@ -657,11 +928,13 @@
             </div>
 
 
+
             <div class="panel">
 
                 <div class="panel-header">
 
                     <div>
+
                         <div class="panel-title">
                             Majątek klanów
                         </div>
@@ -669,14 +942,20 @@
                         <div class="panel-subtitle">
                             TOP 10
                         </div>
+
                     </div>
 
                 </div>
 
+
                 <div class="panel-body">
 
                     <div class="chart-container">
-                        <canvas id="wealthChart"></canvas>
+
+                        <canvas
+                            id="wealthChart"
+                        ></canvas>
+
                     </div>
 
                 </div>
@@ -688,17 +967,22 @@
     </section>
 
 
+
     <!-- =====================================================
          MARKET
          ===================================================== -->
 
-    <section class="page" id="market">
+    <section
+        class="page"
+        id="market"
+    >
 
         <div class="panel">
 
             <div class="panel-header">
 
                 <div>
+
                     <div class="panel-title">
                         Rynek klanów
                     </div>
@@ -706,9 +990,11 @@
                     <div class="panel-subtitle">
                         Zmiany wartości
                     </div>
+
                 </div>
 
             </div>
+
 
             <div class="table-wrap">
 
@@ -717,16 +1003,21 @@
                     <thead>
 
                         <tr>
+
                             <th>Klan</th>
                             <th>Wartość</th>
                             <th>Dzisiaj</th>
                             <th>Tydzień</th>
                             <th>Status</th>
+
                         </tr>
 
                     </thead>
 
-                    <tbody id="marketTable"></tbody>
+
+                    <tbody
+                        id="marketTable"
+                    ></tbody>
 
                 </table>
 
@@ -737,17 +1028,22 @@
     </section>
 
 
+
     <!-- =====================================================
          SEARCH
          ===================================================== -->
 
-    <section class="page" id="search">
+    <section
+        class="page"
+        id="search"
+    >
 
         <div class="panel">
 
             <div class="panel-header">
 
                 <div>
+
                     <div class="panel-title">
                         Wyszukiwarka
                     </div>
@@ -755,22 +1051,30 @@
                     <div class="panel-subtitle">
                         Znajdź gracza lub klan
                     </div>
+
                 </div>
 
             </div>
 
+
             <div class="panel-body">
 
-                <div class="search" style="width:100%;">
+
+                <div
+                    class="search"
+                    style="width:100%;"
+                >
 
                     <input
                         id="globalSearchPage"
                         type="text"
                         placeholder="Wpisz nazwę gracza lub klanu..."
+                        autocomplete="off"
                         style="width:100%;"
                     >
 
                 </div>
+
 
                 <div
                     id="searchResults"
@@ -779,14 +1083,17 @@
 
                     <div class="empty-state">
 
-                        <div>⌕</div>
+                        <div>
+                            ⌕
+                        </div>
 
                         <h3>
                             Wpisz nazwę powyżej
                         </h3>
 
                         <p>
-                            Wyszukiwarka znajdzie graczy oraz klany.
+                            Wyszukiwarka znajdzie
+                            graczy oraz klany.
                         </p>
 
                     </div>
@@ -802,10 +1109,20 @@
 </main>
 
 
+
+<!-- =====================================================
+     TOAST
+     ===================================================== -->
+
 <div id="toast">
     ✓ Statystyki zostały odświeżone
 </div>
 
+
+
+<!-- =====================================================
+     JAVASCRIPT
+     ===================================================== -->
 
 <script src="script.js"></script>
 
