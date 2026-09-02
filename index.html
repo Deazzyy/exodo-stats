@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07080c">
+<title>EXODO — EXO Challenge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="noise"></div>
+<div class="skin-backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="#start">
+    <img src="logo.png" class="brand-logo" alt="EXODO">
+    <div class="brand-copy"><strong>EXODO</strong><span>EXO CHALLENGE</span></div>
+  </a>
+  <nav class="nav">
+    <a href="#start">Start</a><a href="#challenge">Konkurs</a><a href="#ranking">Ranking</a><a href="#market">Rynek</a><a href="#rules">Zasady</a>
+  </nav>
+  <div class="api-status" id="apiStatus"><span class="status-dot"></span><span id="apiStatusText">Łączenie…</span></div>
+</header>
+
+<main>
+<section class="hero" id="start">
+  <div class="hero-copy">
+    <span class="kicker">HODOWLA RP • EXO • SKILL EVENT</span>
+    <h1>EXO<br><span>CHALLENGE</span></h1>
+    <p>Konkurs etapowy bez losowania. Każdy uczestnik ma identyczne zadania, a ranking zależy od poprawnego ukończenia etapów i czasu. Warunkiem udziału jest posiadanie minimum 40 EXO. Po zakwalifikowaniu o wyniku decydują wyłącznie poprawne odpowiedzi i czas — liczba posiadanych EXO nie daje dodatkowej przewagi.</p>
+    <div class="hero-buttons"><a class="btn primary" href="#challenge">Dołącz do konkursu</a><a class="btn secondary" href="https://hodowlarp.pl/gielda/exo" target="_blank" rel="noopener">Otwórz EXO ↗</a></div>
+    <div class="challenge-meta">
+      <div><small>EVENT ID</small><strong id="eventId">—</strong></div>
+      <div><small>START</small><strong id="eventStart">—</strong></div>
+      <div><small>KONIEC</small><strong id="eventEnd">—</strong></div>
+    </div>
+  </div>
+
+  <aside class="event-card">
+    <div class="event-card-top"><span id="eventStateBadge" class="live-badge offline"><i></i><span>OFFLINE</span></span><span class="event-label">SKILL CHALLENGE</span></div>
+    <div class="count-label" id="countdownLabel">STATUS KONKURSU</div>
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="count-sub" id="countdownSub">Oczekiwanie na dane API</div>
+    <div class="event-progress"><div class="progress-line"><i id="progressBar"></i></div><div class="progress-labels"><span>START</span><span>ETAPY</span><span>KONIEC</span></div></div>
+  </aside>
+</section>
+
+<section class="market-strip" id="market">
+  <div><span>KURS EXO</span><strong id="marketPrice">—</strong></div>
+  <div><span>PŁYNNOŚĆ PULI</span><strong id="marketLiquidity">—</strong></div>
+  <div><span>RATING</span><strong id="marketRating">—</strong></div>
+  <div><span>PROWIZJA</span><strong id="marketCommission">—</strong></div>
+  <div><span>AKCJE W OBROCIE</span><strong id="marketShares">—</strong></div>
+</section>
+
+<section class="section" id="challenge">
+  <div class="section-header"><div><span class="kicker">CHALLENGE PANEL</span><h2>Twój udział</h2></div><div class="sync-pill"><span class="pulse"></span><span id="syncText">Automatyczna aktualizacja</span></div></div>
+  <div class="challenge-grid">
+    <article class="panel join-panel">
+      <span class="kicker">JOIN</span><h3>Wejdź do konkursu</h3>
+      <p>Wpisz nick z Minecrafta. Do konkursu mogą dołączyć wyłącznie akcjonariusze posiadający co najmniej 40 EXO w momencie zapisu.</p>
+      <div class="form-row"><input id="nickInput" maxlength="16" placeholder="Twój nick Minecraft"><button class="btn primary" id="joinBtn">Dołącz</button></div>
+      <div class="identity" id="identityBox">Nie jesteś jeszcze zapisany na tym urządzeniu.</div>
+      <div class="eligibility" id="eligibilityBox">Wymaganie: minimum 40 EXO.</div>
+    </article>
+
+    <article class="panel stage-panel">
+      <div class="panel-head"><div><span class="kicker">CURRENT STAGE</span><h3 id="stageTitle">Oczekiwanie</h3></div><span class="mini-badge" id="stageBadge">0/5</span></div>
+      <p id="stagePrompt">Po rozpoczęciu konkursu pojawi się tutaj aktualne zadanie.</p>
+      <div class="form-row"><input id="answerInput" placeholder="Wpisz odpowiedź / kod"><button class="btn primary" id="answerBtn">Sprawdź</button></div>
+      <div class="answer-status" id="answerStatus"></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="ranking">
+  <div class="section-header"><div><span class="kicker">LIVE LEADERBOARD</span><h2>Ranking uczestników</h2></div><div class="prize-total">TOP 5 → NAGRODY</div></div>
+  <div class="stats-grid">
+    <article class="stat-card"><div class="stat-label">UCZESTNICY</div><div class="stat-value" id="statParticipants">0</div><div class="stat-note">zapisanych</div></article>
+    <article class="stat-card"><div class="stat-label">UKOŃCZYLI</div><div class="stat-value" id="statFinished">0</div><div class="stat-note">pełny challenge</div></article>
+    <article class="stat-card"><div class="stat-label">ETAPÓW</div><div class="stat-value" id="statStages">0</div><div class="stat-note">w tym evencie</div></article>
+    <article class="stat-card"><div class="stat-label">TWÓJ POSTĘP</div><div class="stat-value" id="statMyProgress">0/0</div><div class="stat-note">ukończone etapy</div></article>
+  </div>
+  <div class="table-panel ranking-table"><div class="table-scroll"><table><thead><tr><th>#</th><th>GRACZ</th><th>POSTĘP</th><th>STATUS</th><th>CZAS UKOŃCZENIA</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="table-empty">Brak uczestników.</td></tr></tbody></table></div></div>
+</section>
+
+<section class="section split">
+  <article class="panel activity-panel">
+    <div class="panel-head"><div><span class="kicker">LIVE MARKET</span><h3>Aktualne transakcje EXO</h3></div><span class="mini-badge">LIVE</span></div>
+    <div id="recentEvents" class="events-list"><div class="empty">Ładowanie transakcji…</div></div>
+  </article>
+  <article class="panel info-panel">
+    <span class="kicker">FAIR PLAY</span><h3>Nie ma losowania</h3>
+    <p>Każdy uczestnik rozwiązuje te same etapy. O miejscu w rankingu decyduje liczba ukończonych etapów, a po ukończeniu całości — czas zakończenia.</p>
+    <div class="flow"><span>Dołącz</span><i>→</i><span>Rozwiąż</span><i>→</i><span>Ukończ</span><i>→</i><span>Ranking</span></div>
+  </article>
+</section>
+
+<section class="section" id="rules">
+  <div class="section-header"><div><span class="kicker">RULES</span><h2>Zasady konkursu</h2></div></div>
+  <div class="rules-grid">
+    <article class="rule"><b>01</b><h3>Minimum 40 EXO</h3><p>Do konkursu mogą wejść akcjonariusze posiadający minimum 40 EXO w momencie zapisu.</p></article>
+    <article class="rule"><b>02</b><h3>Te same zadania</h3><p>Każdy uczestnik dostaje identyczne etapy w tej samej kolejności.</p></article>
+    <article class="rule"><b>03</b><h3>Liczy się wynik</h3><p>Ranking wynika z ukończonych etapów i czasu, a nie z przypadku.</p></article>
+    <article class="rule"><b>04</b><h3>Jedno konto</h3><p>Jeden gracz może wystartować tylko raz w danym evencie.</p></article>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header"><div><span class="kicker">PRIZES</span><h2>Nagrody</h2></div></div>
+  <div class="prizes-grid">
+    <article class="prize first"><span>🥇</span><div><small>1. MIEJSCE</small><strong>Unikalny artefakt</strong></div></article>
+    <article class="prize"><span>🥈</span><div><small>2. MIEJSCE</small><strong>Wartościowy item</strong></div></article>
+    <article class="prize"><span>🥉</span><div><small>3. MIEJSCE</small><strong>Wartościowy item</strong></div></article>
+    <article class="prize compact"><span>04</span><div><small>4. MIEJSCE</small><strong>Nagroda itemowa</strong></div></article>
+    <article class="prize compact"><span>05</span><div><small>5. MIEJSCE</small><strong>Nagroda itemowa</strong></div></article>
+  </div>
+</section>
+</main>
+
+<footer><span>EXODO • EXO CHALLENGE</span><span id="footerState">API: oczekiwanie</span><span>HODOWLA RP</span></footer>
+<div id="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
